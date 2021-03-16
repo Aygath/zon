@@ -347,9 +347,9 @@ int main(int argc, char **argv)
 	   }
 
 	   if (arguments.current) if (tset<trise)
-		   printf("+%s\n",(arguments.verbose >=1)?" up now\n":"");  
+		   printf("+%s\n",(arguments.verbose >=1)?" up now":"");  
 	   else 
-		   printf("-%s\n",(arguments.verbose >=1)?" down now\n":"");  
+		   printf("-%s\n",(arguments.verbose >=1)?" down now":"");  
 	
 	   if (arguments.mid) {
 		   tset = (trise+tset)/2;
