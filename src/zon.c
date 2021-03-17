@@ -290,14 +290,15 @@ int main(int argc, char **argv)
       if ( arguments.date!="default" ) { 
 	 sscanf(arguments.date, "%4d-%2d-%2dT%2d:%2d%3d:%2d", &base.tm_year, &base.tm_mon, &base.tm_mday, &base.tm_hour, &base.tm_min, &zhours, &zmin);  
 	 base.tm_year -= 1900; base.tm_mon -= 1; 
-	 base.tm_sec = (zhours*3600 + zmin*60); 
+	 base.tm_sec = -(zhours*3600 + zmin*60);
+	 base.tm_isdst = 0 ;
+         tbase = timegm(&base); 
+         gmtime_r(&tbase,&base); 
       }; 
-      tbase = mktime(&base); 
-      gmtime_r(&tbase,&base); 
 
       if ( arguments.verbose  >= 2 ) {
 	      printf( "system time using local time zone   %s", ctime(&tnow));
-              printf( "base time in UTC                    %s", ctime(&tbase));
+              printf( "base time in local time zone        %s", ctime(&tbase));
               printf( "Local Timezone secs                 %ld\n", timezone);
       }; 
 
@@ -316,10 +317,11 @@ int main(int argc, char **argv)
 	     tmrise.tm_hour = (int)((tnoon-tarc)*60) / 60;
 	     tmrise.tm_min  = (int)((tnoon-tarc)*60) % 60;
 	     tmrise.tm_sec = 0 ; 
-	     trise=mktime(&tmrise); trise-=timezone;
+	     tmrise.tm_isdst = 0 ; 
+	     trise=timegm(&tmrise); 
 	     if (arguments.verbose >= 2 ) if (skipped_days==0 && rs==1) printf("up entire solar day\n"); 
 	     ++skipped_days;
-           } while  ( !  ( skipped_days>365 || rs==0 && trise>= tbase ) ) ; 
+           } while  ( !  ( skipped_days>365 || rs==0 && trise > tbase ) ) ; 
 	   
 	   if (arguments.rise) {
 		   gmtime_r(&trise,&tmrise) ;
@@ -335,7 +337,8 @@ int main(int argc, char **argv)
 	     tmset.tm_hour = (int)((tnoon+tarc)*60) / 60;
 	     tmset.tm_min  = (int)((tnoon+tarc)*60) % 60;
 	     tmset.tm_sec = 0 ;
-	     tset=mktime(&tmset); tset-=timezone;
+	     tmset.tm_isdst = 0 ;
+	     tset=timegm(&tmset); 
 	     if (arguments.verbose >=2 ) if (skipped_days==0 && rs==-1) printf("down entire solar day\n"); 
 	     ++skipped_days;
            } while  ( ! (  skipped_days>365 || rs==0 && tset > tbase ) ) ; 
