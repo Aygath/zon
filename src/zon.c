@@ -141,7 +141,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
       arguments->dateformat = "%H:%M %Y-%m-%d";
       break;
     case 'I':
-      arguments->dateformat = "%Y-%m-%dT%H:%M:%S+00:00";
+      arguments->dateformat = "%Y-%m-%dT%H:%M+00:00";
       break;
     case 'y':
       arguments->dateformat = "%Y-%m-%d %H:%M UTC";
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
       arguments.rim=1;
       arguments.date="default";
       arguments.location="default";
-      arguments.dateformat="%Y-%m-%dT%H:%M:%S+00:00";
+      arguments.dateformat="%Y-%m-%dT%H:%M+00:00";
       argp_parse (&argp, argc, argv, 0, 0, &arguments);
       if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid ) ) arguments.rise=1;
 
