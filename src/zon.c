@@ -153,7 +153,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
       arguments->verbose += 1;
       break;
     case 'd':
-      if (strlen(arg)!=22) argp_usage (state);
+      if ((strlen(arg)!=22) && (strlen(arg)!=21)) argp_usage (state);
       arguments->date = arg;
       break;
     case 'l':
@@ -289,7 +289,10 @@ int main(int argc, char **argv)
       gmtime_r(&tbase,&base); 
       int zhours,zmin;
       if ( arguments.date!=NULL) { 
-	 sscanf(arguments.date, "%4d-%2d-%2dT%2d:%2d%3d:%2d", &base.tm_year, &base.tm_mon, &base.tm_mday, &base.tm_hour, &base.tm_min, &zhours, &zmin);  
+	 if (strlen(arguments.date)==22) 
+	   sscanf(arguments.date, "%4d-%2d-%2dT%2d:%2d%3d:%2d", &base.tm_year, &base.tm_mon, &base.tm_mday, &base.tm_hour, &base.tm_min, &zhours, &zmin);  
+	 else
+	   sscanf(arguments.date, "%4d-%2d-%2dT%2d:%2d%3d%2d", &base.tm_year, &base.tm_mon, &base.tm_mday, &base.tm_hour, &base.tm_min, &zhours, &zmin);  
 	 base.tm_year -= 1900; base.tm_mon -= 1; 
 	 base.tm_sec = -(zhours*3600 + zmin*60);
 	 base.tm_isdst = 0 ;
