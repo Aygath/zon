@@ -223,13 +223,13 @@ int main(int argc, char **argv)
       arguments.verbose=0;
       arguments.angle=-35/60;
       arguments.rim=1;
-      arguments.date="default";
-      arguments.location="default";
+      arguments.date=NULL;
+      arguments.location=NULL;
       arguments.dateformat="%Y-%m-%dT%H:%M+00:00";
       argp_parse (&argp, argc, argv, 0, 0, &arguments);
       if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid ) ) arguments.rise=1;
 
-      double lon, lat;
+      double lon=0,lat=0;
       double tnoon,tarc;
       int    rs;
 
@@ -238,15 +238,16 @@ int main(int argc, char **argv)
 // Successively try: CLI-argument, /etc/zon.conf, TZ environment or /etc/timezone (to inspect /usr/share/zoneinfo.zone1970.tab) or set to 0 Norht, 0 West
 // char * getenv (const char *name)
       FILE *fp;
-      char locationstr[31], filename[81];
-      if (arguments.location=="default") { 
+      char *locationstr; locationstr=malloc(sizeof(char)*31);
+      char *filename; filename=malloc(sizeof(char)*81);
+      if (arguments.location==NULL) { 
 	      lon=0; lat=0;
-	      strncpy((char *) &filename,getenv("HOME"),80);
-	      strncat((char *) &filename,"/.config/zon.conf",80);
-	      fp=fopen((char *) &filename,"r");
+	      strncpy(filename,getenv("HOME"),80);
+	      strncat(filename,"/.config/zon.conf",80);
+	      fp=fopen(filename,"r");
 	      if  (! fp) { 
-	        strncpy((char *) &filename,"/etc/zon.conf",80);
-	        fp=fopen((char *) &filename,"r");
+	        strncpy(filename,"/etc/zon.conf",80);
+	        fp=fopen(filename,"r");
 	      };
 	      if (fp) {
 		     if (fgets(locationstr,30,fp)!=0) {
@@ -258,7 +259,7 @@ int main(int argc, char **argv)
 		     }
 	      }
       } 
-      if (arguments.location!="default") { 
+      if (arguments.location!=NULL) { 
 	 if (arguments.verbose >= 2) printf("Location str (should be +DDMM[SS]+DDDMM[SS]): %s  len %lu \n",arguments.location,strlen(arguments.location)); 
          if ( strlen(arguments.location)==11 ) {
            sscanf(arguments.location, "%5lf%6lf", &lat, &lon); 
@@ -271,13 +272,13 @@ int main(int argc, char **argv)
            lon = ((int)lon / 10000) + (double)((int)lon / 100 % 100)/60 + (double)((int)lon % 100)/3600 ; 
          }
       }; 
-      if ( arguments.verbose >= 2  ) printf( "Latitude (+ is north) and Longitude (+ is east) integer values : %+lf %+lf\n", lat, lon );
+      if ( arguments.verbose >= 2  ) printf( "Latitude (+ is north) and Longitude (+ is east) decimal values : %+lf %+lf\n", lat, lon );
 
 // moment in time is our next most important reference for the output: 
 //      tzset();
       time_t tnow,tbase,trise,tset;
       struct tm base,tmrise,tmset;
-      char datestr[80];
+      char *datestr; datestr=malloc(sizeof(char)*81);
       double base_d,degree;
       int skipped_days;
 
@@ -287,7 +288,7 @@ int main(int argc, char **argv)
 // modify base according tot cli-arguments
       gmtime_r(&tbase,&base); 
       int zhours,zmin;
-      if ( arguments.date!="default" ) { 
+      if ( arguments.date!=NULL) { 
 	 sscanf(arguments.date, "%4d-%2d-%2dT%2d:%2d%3d:%2d", &base.tm_year, &base.tm_mon, &base.tm_mday, &base.tm_hour, &base.tm_min, &zhours, &zmin);  
 	 base.tm_year -= 1900; base.tm_mon -= 1; 
 	 base.tm_sec = -(zhours*3600 + zmin*60);
@@ -305,7 +306,6 @@ int main(int argc, char **argv)
 // make base data parameters available for calculations:
       /* Compute d of 12h local mean solar time */
       base_d = days_since_2000_Jan_0(base.tm_year+1900,base.tm_mon+1,base.tm_mday) + 0.5 - lon/360.0;
-
 
 //		int __sunnoonarct_( int year, int month, int day, double lon, double lat,
 //                  double altit, int upper_limb, double *noon, double *arc )
