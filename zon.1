@@ -33,15 +33,16 @@ zon [Options...] \fB\-\-\fR scriptable time output about sun rise and set in UTC
 Options to select what to display
 .TP
 \fB\-r\fR, \fB\-\-rise\fR
-Default: Produce the next start/rise time relative
-to current or provided time
+Produce the next start/rise time relative to
+current or provided time
 .TP
 \fB\-s\fR, \fB\-\-set\fR
 Produce the next end/set time relative to current
 or provided time
 .TP
 \fB\-c\fR, \fB\-\-current\fR
-Whether sun is up "+" or down "\-"
+Whether sun is up "+" or down "\-". Default if no
+display type selected.
 .TP
 \fB\-m\fR, \fB\-\-mid\fR
 Produce time exactly between the next rise and set
@@ -51,12 +52,16 @@ Options to specify when and where on earth
 .TP
 \fB\-d\fR, \fB\-\-date\fR=\fI\,YYYY\-MM\-DDTHH\/\fR:MM+ZZ:zz
 Calculate for specified iso\-formatted time.
-Defaults to current system UTC date.
-.TP
-\fB\-l\fR, \fB\-\-location=\fR+DDMM+DDDMM|+DDMMSS+DDDMMSS
+Defaults to current system UTC date. Colon in
+timezone may be omitted (compatibility)
+.HP
+\fB\-l\fR,                              \fB\-\-location=\fR+DDMM+DDDMM|+DDMMSS+DDDMMSS
+.PP
 Calculate for latitude (+N/\-S) and longitude
+.TP
 (+E\-W) in Degrees, Minutes and Seconds. Overrides
-configuration files
+configuration files \fI\,/etc/zon.conf\/\fP and
+~/.config/zon.conf
 .IP
 Options to format the output. Defaults to iso\-format
 .TP
