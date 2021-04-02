@@ -232,7 +232,7 @@ int main(int argc, char **argv)
       arguments.location=NULL;
       arguments.dateformat="%Y-%m-%dT%H:%M+00:00";
       argp_parse (&argp, argc, argv, 0, 0, &arguments);
-      if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid ) ) arguments.rise=1;
+      if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid ) ) arguments.current=1;
 
       double lon=0,lat=0;
       double tnoon,tarc;
