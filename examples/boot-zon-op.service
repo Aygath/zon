@@ -1,0 +1,10 @@
+[Unit]
+Description="Boot or reboot a chain of zon-op actions"
+After=sysinit.target
+After=time-sync.target
+Before=timer.target
+
+[Service]
+Type=oneshot
+ExecStart=bash -c "/usr/local/bin/zon-op boot"
+

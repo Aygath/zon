@@ -1,0 +1,27 @@
+#!/bin/bash
+# Once started this script will restart itself every sun rise and log its action in /tmp under its own name 
+# Adapt according to your needs!
+# When supplied with de "boot" parameter, it will skip the workload for now and immediately reschedule at sun rise.
+cmdname=$(basename $0)
+timenow=$(date -Im)
+if [ "$1" = "boot" ] ; then 
+  echo "Script ${cmdname} sequence boot at $(date -d ${timenow})">/tmp/${cmdname}.log;
+else
+  echo "Script ${cmdname} activated at $(date -d ${timenow})">/tmp/${cmdname}.log;
+  # excecute the workload of this script if in fact the sun is (just) up currently:
+  # You might add extra test, such as whether the daytime will last at least 5 minutes. 
+  if [ "$(zon -c -d ${timenow})" = "+" ] then {
+    # Enter a log of this activity ....
+    # switch lights off.... 
+    # set alarm to daylight settings .....
+    # sprinkle the garden ....
+  } fi
+fi
+
+
+# Schedule the next execution of this script (and thus it's workload)
+systemd-run --on-calendar="$(zon -ryd ${timenow})" --unit="$(zon -rd ${timenow} -f "${cmdname}-%b%d@%H:%M" $0
+# You might modify the execution date to e.d. 5 minutes before sun rise using the date command and de -d paramter of both date and zon. In that case also adapt the test in line 12 above, when used at all.
+# timetorun=$(date -d "$(zon -rd ${timenow}) - 5 minute" +"%Y-%m-%d %H:%M UTC") 
+
+
