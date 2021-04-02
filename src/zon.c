@@ -281,11 +281,10 @@ int main(int argc, char **argv)
 
 // moment in time is our next most important reference for the output: 
 //      tzset();
-      time_t tnow,tbase,trise,tset;
+      time_t tnow,tbase,trise,tset,validtrise,validtset;
       struct tm base,tmrise,tmset;
       char *datestr; datestr=malloc(sizeof(char)*81);
       double base_d,degree;
-      int skipped_days;
 
       time(&tnow);
       tbase=tnow;
@@ -317,19 +316,60 @@ int main(int argc, char **argv)
 
 //		int __sunnoonarct_( int year, int month, int day, double lon, double lat,
 //                  double altit, int upper_limb, double *noon, double *arc )
+      int skipped_days, savedrs;
 	   skipped_days = 0 ; 
+           validtrise=0;
+           validtset=0;
            do {
 	     rs = __sunnoonarct__(base_d + skipped_days,lon,lat,  arguments.angle, arguments.rim, &tnoon, &tarc ); 
-	     trise=tbase + skipped_days*24*60*60;;
+
+	     trise=tbase + skipped_days*24*60*60;
 	     tmrise= *gmtime(&trise);
 	     tmrise.tm_hour = (int)((tnoon-tarc)*60) / 60;
 	     tmrise.tm_min  = (int)((tnoon-tarc)*60) % 60;
 	     tmrise.tm_sec = 0 ; 
 	     tmrise.tm_isdst = 0 ; 
 	     trise=timegm(&tmrise); 
-	     if (arguments.verbose >= 2 ) if (skipped_days==0 && rs==1) printf("up entire solar day\n"); 
-	     ++skipped_days;
-           } while  ( !  ( skipped_days>365 || rs==0 && trise > tbase ) ) ; 
+
+	     tset=tbase + skipped_days*24*60*60;
+	     tmset= *gmtime(&tset);
+	     tmset.tm_hour = (int)((tnoon+tarc)*60) / 60;
+	     tmset.tm_min  = (int)((tnoon+tarc)*60) % 60;
+	     tmset.tm_sec = 0 ;
+	     tmset.tm_isdst = 0 ;
+	     tset=timegm(&tmset); 
+
+	     if (skipped_days==0) {
+		     savedrs=rs;
+		     if (arguments.verbose >= 2) {
+	               if ( rs>0 ) printf("++ up entire solar day %+i\n",rs);
+	               if ( rs<0 ) printf("-- down entire solar day %+i\n",rs);
+	               if ( rs==0 ) printf(" Day with at a sun set and/or rise event. RS %+i\n",rs);
+		     }; 
+	     };
+             if (rs==0) {
+	       if (savedrs>0) {
+		      if ( (!validtset) && tset>tbase ) validtset=tset;
+	              if ( (!validtrise) && validtset && (trise>validtset) ) validtrise=trise;
+               } else if (savedrs<0 ){
+	              if ( (!validtrise) && trise>tbase ) validtrise=trise;
+	              if ( (!validtset) && validtrise && (tset>validtrise) ) validtset=tset;
+               } else {
+	              if ( (!validtset) && (tset>tbase) ) validtset=tset;
+	              if ( (!validtrise) && (trise>tbase) ) validtrise=trise;
+	       };
+	     };
+	 //    printf("RS value : %+i\n",rs);
+	 //    printf("skipped_days value : %+i\n",skipped_days);
+	 //    printf( "trise  %s", ctime(&trise));
+	 //    printf( "tset  %s", ctime(&tset));
+	 //    printf( "vtrise  %s", ctime(&validtrise));
+	 //    printf( "vtset  %s", ctime(&validtset));
+	     skipped_days +=1 ; 
+           } while  ( ( (!validtrise)|| (!validtset)) && (skipped_days<365)); 
+
+           tset=validtset;
+	   trise=validtrise;
 	   
 	   if (arguments.rise) {
 		   gmtime_r(&trise,&tmrise) ;
@@ -337,20 +377,6 @@ int main(int argc, char **argv)
 		   printf("%s%s\n",datestr,(arguments.verbose>=1)?" rise":"");
 	   }
 	   
-	   skipped_days = 0 ; 
-	   do {
-	     rs = __sunnoonarct__(base_d + skipped_days,lon,lat, arguments.angle, arguments.rim, &tnoon, &tarc ); 
-	     tset=tbase + skipped_days*24*60*60;;
-	     tmset= *gmtime(&tset);
-	     tmset.tm_hour = (int)((tnoon+tarc)*60) / 60;
-	     tmset.tm_min  = (int)((tnoon+tarc)*60) % 60;
-	     tmset.tm_sec = 0 ;
-	     tmset.tm_isdst = 0 ;
-	     tset=timegm(&tmset); 
-	     if (arguments.verbose >=2 ) if (skipped_days==0 && rs==-1) printf("down entire solar day\n"); 
-	     ++skipped_days;
-           } while  ( ! (  skipped_days>365 || rs==0 && tset > tbase ) ) ; 
-
 	   if (arguments.set) {
 		   gmtime_r(&tset,&tmset);
 		   strftime(datestr,80,arguments.dateformat, &tmset); 
