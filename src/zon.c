@@ -34,6 +34,7 @@ Released to the public domain by Paul Schlyter, December 1992
 #include <argp.h>
 #include <string.h>
 #include <stdlib.h>
+#include <regex.h>
 
 
 const char *argp_program_version =
@@ -59,7 +60,7 @@ static struct argp_option options[] = {
   {"mid",      'm', 0,      0,  "Produce time exactly between the next rise and set times, i.e. deep midnight or high noon" },
   {"current",  'c', 0,      0,  "Whether sun is up \"+\" or down \"-\"" },
   {0,0,0,0, "Options to specify when and where on earth" },
-  {"location", 'l', "+DDMM+DDDMM|+DDMMSS+DDDMMSS", 0,  "Calculate for latitude (+N/-S) and longitude (+E-W) in Degrees, Minutes and Seconds" },
+  {"location", 'l', "+DDMM+DDDMM|+DDMMSS+DDDMMSS", 0,  "Calculate for latitude (+N/-S) and longitude (+E-W) in Degrees, Minutes and Seconds. Overrides configuration files" },
   {"date",     'd', "YYYY-MM-DDTHH:MM+ZZ:zz", 0,  "Calculate for specified iso-formatted time. Defaults to current system UTC date." },
   {0,0,0,0, "Options to format the output. Defaults to iso-format" },
   {"at",       '@', 0,      0,  "Format output as date usable by the at command (in UTC), HH:MM YYYY-MM-DD" },
@@ -70,14 +71,14 @@ static struct argp_option options[] = {
   {0,0,0,0, "Options to select the kind of twighlight" },
   {"sun",       0,  0,      0,  "Default: Produce start, ending and duration of visibility of top of sun above horizon, i.e. sunrise and sunset" },
   {0,0,0,0, "" },
-  {"civil",     1,  0,      0,  "Produce data about civil twighlight" },
+  {"civil",     1,  0,      0,  "Produce data about civil twighlight, starting when centre of sun is 6 degrees below horizon" },
   {0,0,0,0, "" },
-  {"nautical",  2,  0,      0,  "Produce data about nautical twighlight" },
+  {"nautical",  2,  0,      0,  "Produce data about nautical twighlight, starting when centre of sun is 12 degrees below horizon" },
   {0,0,0,0, "" },
-  {"astronomical",3,0,      0,  "Produce data about nautical twighlight" },
+  {"astronomical",3,0,      0,  "Produce data about astronomical twighlight, starting when centre of sun is 18 degrees below horizon" },
   {0,0,0,0, "" },
-  {"angle"     ,5,  "degrees",      0,  "Specify rise/set angle of the centre of the sun" },
-  {"rim"       ,4,  0,      0,  "Specify to compensate angle for upper rim of the sun" },
+  {"angle"     ,5,  "degrees",      0,  "Specify your own rise/set angle of the centre of the sun below horizon" },
+  {"rim"       ,4,  0,      0,  "Specify to compensate angle for upper rim of the sun, so to act like sun rise/set" },
   { 0 }
 };
  
@@ -96,6 +97,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
   /* Get the input argument from argp_parse, which we
      know is a pointer to our arguments structure. */
   struct arguments *arguments = state->input;
+  regex_t regex;
 
   switch (key)
     {
@@ -153,10 +155,13 @@ parse_opt (int key, char *arg, struct argp_state *state)
       arguments->verbose += 1;
       break;
     case 'd':
-      if ((strlen(arg)!=22) && (strlen(arg)!=21)) argp_usage (state);
+      if (regcomp(&regex, "^((19)|(20))[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(\\+|-)[0-9]{2}:?[0-9]{2}$", REG_EXTENDED ) || regexec(&regex, arg, 0, NULL, 0)) argp_usage (state);
+      regfree(&regex);
       arguments->date = arg;
       break;
     case 'l':
+      if (regcomp(&regex, "^(\\+|-)[0-9]{4}([0-9]{2})?(\\+|-)[0-9]{5}([0-9]{2})?$", REG_EXTENDED ) || regexec(&regex, arg, 0, NULL, 0)) argp_usage (state);
+      regfree(&regex);
       if (strlen(arg)!=15 && strlen(arg)!=11) argp_usage (state);
       arguments->location = arg;
       break;

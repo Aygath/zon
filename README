@@ -1,7 +1,7 @@
 [DESCRIPTION]
 This is the README for zon
 
-This program will print the time for the next sun rise or sun set in your location. It's purpose is to schedule jobs to be executed at e.g. sun rise. This could be used for swithing on and off your garden lights, solar panels, security alarms etc.
+This program will print the time for the next sun rise or sun set in your location. It provides integration with systemd or cron/at timers in order to activate relative to sun rise and sun set. This could be used for swithing on and off your garden lights, solar panels, security alarms etc.
 
 This command line tool could be called in cron or as a timestamp to a systemd-timer at e.g. 1:00 AM to delay the actual execution of a job to sun rise or sun set on the same date. You can delay by using the at command or the systemd-run command (see examples). However, this method might not work in regions with higher latitudes than about 65 degrees. 
 
