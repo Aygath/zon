@@ -58,9 +58,6 @@ Released to the public domain by Paul Schlyter, December 1992
 
 /* Function prototypes */
 
-int __sunnoonarct__( double d, double lon, double lat,
-                  double altit, int upper_limb, double *noon, double *arc );
-
 void sunpos( double d, double *lon, double *r );
 void sun_RA_dec( double d, double *RA, double *dec, double *r );
 double revolution( double x );
@@ -71,7 +68,7 @@ void mon_RA_dec( double d, double *RA, double *dec, double *r );
 
 
 
-int __sunnoonarct__( double d, double lon, double lat,
+int __sunnoonarct__( int year, int month, int day, double lon, double lat,
                   double altit, int upper_limb, double *noon, double *arc )
 /***************************************************************************/
 /* Note: year,month,date = calendar date, 1801-2099 only.             */
@@ -86,7 +83,6 @@ int __sunnoonarct__( double d, double lon, double lat,
 /*               Set to non-zero (e.g. 1) when computing rise/set     */
 /*               times, and to zero when computing start/end of       */
 /*               twilight.                                            */
-/*      double  d,   Days since 2000 Jan 0.0 (negative before)         */
 /*        *rise = where to store the rise time                        */
 /*        *set  = where to store the set  time                        */
 /*                Both times are relative to the specified altitude,  */
@@ -103,12 +99,15 @@ int __sunnoonarct__( double d, double lon, double lat,
 /*                    both set to the time when the sun is at south.  */
 /*                                                                    */
 /**********************************************************************/
+/* This procedure calculates a time on a given date, i.e. it is       */
+/* independent of an exact time during that day.                      */
 {
       
       double sr,  /* Solar distance, astronomical units */
       sRA,        /* Sun's Right Ascension */
       sdec,       /* Sun's declination */
       sradius,    /* Sun's apparent radius */
+      d,          /* Days since 2000 Jan 0.0 (negative before) */
 //      t,          /* Diurnal arc */
 //      tsouth,     /* Time when Sun is at south */
       sidtime;    /* Local sidereal time */
@@ -116,7 +115,7 @@ int __sunnoonarct__( double d, double lon, double lat,
       int rc = 0; /* Return cde from function - usually 0 */
 
       /* Compute d of 12h local mean solar time */
-//      d = days_since_2000_Jan_0(year,month,day) + 0.5 - lon/360.0;
+      d = days_since_2000_Jan_0(year,month,day) + 0.5 - lon/360.0;
 
       /* Compute the local sidereal time of this moment */
       sidtime = revolution( GMST0(d) + 180.0 + lon );
@@ -311,12 +310,13 @@ void sun_RA_dec( double d, double *RA, double *dec, double *r )
 
 void moonpos( double d, double *lon, double *lat, double *r )
 /******************************************************/
-/* Computes the Sun's ecliptic longitude and distance */
+/* Computes the Moon's ecliptic longitude and distance */
 /* at an instant given in d, number of days since     */
 /* 2000 Jan 0.0.  The Sun's ecliptic latitude is not  */
 /* computed, since it's always very near 0.           */
 /* Modified from sunpos by Aygath/github               */
 /******************************************************/
+// The Moon's position, as computed, is geocentric, i.e. as seen by an imaginary observer at the center of the Earth
 {
       double M,         /* Mean anomaly of the Moon */
 	     Ms,        /* Mean anomaly of the Sun (ness. for perturbations) */
@@ -414,25 +414,37 @@ void moon_RA_dec( double d, double *RA, double *dec, double *r )
 /* the number of days since 2000 Jan 0.0.             */
 /******************************************************/
 {
-      double lon, lat, obl_ecl, x, y, z;
+      double lon, lat, obl_ecl, x, y, z, y_eq;
 
       /* Compute Sun's ecliptical coordinates */
       moonpos( d, &lon, &lat, r );
 
       /* Compute ecliptic rectangular coordinates (z=0) */
-      x = *r * cosd(lon);
-      y = *r * sind(lon);
-
+      x = cosd(lon)*cosd(lat);
+      y = sind(lon)*cosd(lat);
+      z = sind(lat);
       /* Compute obliquity of ecliptic (inclination of Earth's axis) */
       obl_ecl = 23.4393 - 3.563E-7 * d;
 
       /* Convert to equatorial rectangular coordinates - x is unchanged */
-      z = y * sind(obl_ecl);
-      y = y * cosd(obl_ecl);
+      y_eq = y * cosd(obl_ecl) - z * sind(obl_ecl);
+      z = y * sind(obl_ecl) + z * cosd(obl_ecl);
 
-      /* Convert to spherical coordinates */
-      *RA = atan2d( y, x );
-      *dec = atan2d( z, sqrt(x*x + y*y) );
+      /* Convert to GEOCENTRIC spherical coordinates */
+      *RA = revolution( atan2d( y_eq, x ) );
+      *dec = atan2d( z, sqrt(x*x + y_eq*y_eq) );
+
+      /* Now make it TOPOCENTRIC, because the moon is "close" to Earth */
+      double mpar, gclat, rho,HA, UT, g;
+
+      /* Moon's parallax, i.e. disk of Earth as seen from Moon */
+      mpar = asind(1.0 / *r);
+      gclat = lat - 0.1924 * sind(2.0*lat);
+      rho   = 0.99833 + 0.00167 * cosd(2.0*lat);
+      HA = (GMST0(d)+ UT + lon/15.0 ) - *RA;
+      g = atand(tand(gclat)/cosd(HA));
+      *RA = *RA - mpar * rho * cosd(gclat) * sind(HA)/cosd(*dec);
+      *dec = *dec - mpar * rho * sind(gclat) * sind(g - *dec)/sind(g);
 
 }  /* sun_RA_dec */
 /******************************************************************/

@@ -245,7 +245,6 @@ int main(int argc, char **argv)
       time_t tnow,tbase,trise,tset,validtrise,validtset;
       struct tm base,tmrise,tmset;
       char *datestr; datestr=malloc(sizeof(char)*81);
-      double base_d,degree;
 
       time(&tnow);
       tbase=tnow;
@@ -271,19 +270,12 @@ int main(int argc, char **argv)
               printf( "Local Timezone secs                 %ld\n", timezone);
       }; 
 
-// make base data parameters available for calculations:
-      /* Compute d of 12h local mean solar time */
-      base_d = days_since_2000_Jan_0(base.tm_year+1900,base.tm_mon+1,base.tm_mday) + 0.5 - lon/360.0;
-
-      double mlon,mlat,mr;
-//      moonpos(days_since_2000_Jan_0(base.tm_year+1900,base.tm_mon+1,base.tm_mday),&mlon,&mlat,&mr); printf("moon lon,lat,dist  %f / %f /%f",mlon,mlat,mr);
-
       int skipped_days, savedrs;
 	   skipped_days = 0 ; 
            validtrise=0;
            validtset=0;
            do {
-	     rs = __sunnoonarct__(base_d + skipped_days,lon,lat,  arguments.angle, arguments.rim, &tnoon, &tarc ); 
+	     rs = __sunnoonarct__(base.tm_year+1900,base.tm_mon+1,base.tm_mday + skipped_days,lon,lat,  arguments.angle, arguments.rim, &tnoon, &tarc ); 
 
 	     trise=tbase + skipped_days*24*60*60;
 	     tmrise= *gmtime(&trise);
