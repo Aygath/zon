@@ -310,26 +310,22 @@ void sun_RA_dec( double d, double *RA, double *dec, double *r )
 
 void moonpos( double d, double *lon, double *lat, double *r )
 /******************************************************/
-/* Computes the Moon's ecliptic longitude and distance */
-/* at an instant given in d, number of days since     */
-/* 2000 Jan 0.0.  The Sun's ecliptic latitude is not  */
-/* computed, since it's always very near 0.           */
-/* Modified from sunpos by Aygath/github               */
+/* Computes the Moon's ecliptic longitude, latitude   */
+/* and distance at an instant given in d, number of   */
+/* days since 2000 Jan 0.0.                           */
+/* Adapted from sunpos by Aygath/github               */
 /******************************************************/
 // The Moon's position, as computed, is geocentric, i.e. as seen by an imaginary observer at the center of the Earth
 {
       double M,         /* Mean anomaly of the Moon */
-	     Ms,        /* Mean anomaly of the Sun (ness. for perturbations) */
              w,         /* Mean longitude of perihelion */
 	                /* Sun's mean longitude Ls = Ms + ws */
                         /* Note: Moon's mean longitude Lm = N + M + w */
-	     D,         /* Moon's mean elongation (ness. for perturbations)*/
-	     F,         /* Moon's argument of latitude (ness. for perturbations) */
              e,         /* Eccentricity of Earth's orbit */
 	     N,		/* (Long asc. node) */
 	     i,         /* Inclination */
 	     a,		/* Mean distance */
-             E0,E,         /* Eccentric anomaly */
+             E0,E,      /* Eccentric anomaly */
              x, y,      /* x, y coordinates in orbit */
 	     xeclip,
 	     yeclip,
@@ -360,7 +356,7 @@ void moonpos( double d, double *lon, double *lat, double *r )
       x = a * (cosd(E) - e);
       y = a * sqrt( 1.0 - e*e ) * sind(E);
 
-      *r = sqrt( x*x + y*y );              /* Solar distance */
+      *r = sqrt( x*x + y*y );              /* Moon's distance */
       v =  revolution( atan2d( y, x )) ;                  /* True anomaly */
 //      v =  259.8605;                  /* True anomaly */
 //      printf("x=%f  y=%f   r=%f  v=%f \n",x,y,*r,v);
@@ -370,17 +366,17 @@ void moonpos( double d, double *lon, double *lat, double *r )
       zeclip = *r * sind(v+w) * sind(i);
 //printf("xec=%f   yec=%f   zec=%f\n",xeclip,yeclip,zeclip);
 
-      *lon =revolution( atan2d( (yeclip), (xeclip) ));                        /* True solar longitude */
-      *lat = atan2d( zeclip, sqrt( xeclip*xeclip + yeclip*yeclip ) );
+      *lon =revolution atan2d( yeclip, xeclip );                        /* True moon's longitude */
+      *lat = atan2d( zeclip, sqrt( xeclip*xeclip + yeclip*yeclip ) );       /* Moon's latitude */
       /* in fact optional : */ 
       *r = sqrt( xeclip*xeclip + yeclip*yeclip + zeclip*zeclip );
 
       /* now add in perturbations cause by the sun */ 
       /* Compute mean element for the Sun */
-      Ms = revolution( 356.0470 + 0.9856002585 * d );
+      double Ms = revolution( 356.0470 + 0.9856002585 * d ); /* Mean anomaly of the Sun  */
       /* Save some funcamental arguments for convenience */
-      D = revolution( (N + w + M) - (Ms + (282.9404 + 4.70935E-5 * d) ));
-      F = revolution( w + M );
+      double D = revolution( (N + w + M) - (Ms + (282.9404 + 4.70935E-5 * d) )); /* Moon's mean elongation */
+      double F = revolution( w + M ); /* Moon's argument of latitude */
 // printf("M=%f  Ms=%f  D=%f  F=%f\n",M,Ms,D,F);
       *lon += (-1.274 * sind(M - 2*D))
 	      + (0.658 * sind(2*D))
@@ -399,7 +395,7 @@ void moonpos( double d, double *lon, double *lat, double *r )
 	      + (-0.055 * sind(M - F - 2*D))
 	      + (-0.046 * sind(M + F - 2*D))
 	      + (0.033 * sind(F + 2*D))
-	      + (0.017 * sind(2*M + F))
+	      + (0.017 * sind(2*M + F)) /* why does this term not relate to the sun ? */
 	      ;
       *r   += (-0.58 * cosd(M - 2*D))
 	      + (-0.46 * cosd(2*D))
@@ -441,7 +437,7 @@ void moon_RA_dec( double d, double *RA, double *dec, double *r )
       mpar = asind(1.0 / *r);
       gclat = lat - 0.1924 * sind(2.0*lat);
       rho   = 0.99833 + 0.00167 * cosd(2.0*lat);
-      HA = (GMST0(d)+ UT + lon/15.0 ) - *RA;
+//      HA = (GMST0(d)+ UT + lon/15.0 ) - *RA;
       g = atand(tand(gclat)/cosd(HA));
       *RA = *RA - mpar * rho * cosd(gclat) * sind(HA)/cosd(*dec);
       *dec = *dec - mpar * rho * sind(gclat) * sind(g - *dec)/sind(g);
@@ -510,3 +506,27 @@ double GMST0( double d )
                           ( 0.9856002585 + 4.70935E-5 ) * d );
       return sidtim0;
 }  /* GMST0 */
+
+void EqAz( double RA, double DEC, struct tm tnow , double lon, double lat, double *azimuth, double *altitude)
+/* This converts the RA:decl angle to azimuth:altitude angle                        */
+/* You must specify your reference frame for azi:alt by supplying you location plus */
+/* the time (d) at which you want to observe RA:DEC */
+{
+      double HA, x,y,z, d, xhor,yhor,zhor,LST;
+      /* Compute d of local mean solar time */
+      d = days_since_2000_Jan_0(tnow.tm_year+1900,tnow.tm_mon+1,tnow.tm_mday) + tnow.tm_hour/24.0 + tnow.tm_min/(24*60.0) - lon/360.0;
+      /* Compute the local sidereal time of this moment */
+      LST = revolution( GMST0(d) + 180.0 + lon );
+      HA = LST - RA;
+      x = cosd(HA) * cosd(DEC);
+      y = sind(HA) * cosd(DEC);
+      z = sind(DEC);
+
+      xhor = x * sind(lat) - z * cosd(lat);
+      yhor = y;
+      zhor = x * cosd(lat) + z * sind(lat);
+
+      *azimuth  = atan2d( yhor, xhor ) + 180;
+      *altitude = asind( zhor )       ;
+}
+
