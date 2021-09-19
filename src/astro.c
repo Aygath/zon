@@ -236,10 +236,118 @@ int __sunriset__( int year, int month, int day, double lon, double lat,
       /* Store rise and set times - in hours UT */
       *trise = tsouth - t;
       *tset  = tsouth + t;
-
       return rc;
 }  /* __sunriset__ */
 
+
+int __sunrise__( int year, int month, int day, double lon, double lat,
+                  double altit, int upper_limb, double *trise, double *tset )
+/***************************************************************************/
+/* Note: year,month,date = calendar date, 1801-2099 only.             */
+/*       Eastern longitude positive, Western longitude negative       */
+/*       Northern latitude positive, Southern latitude negative       */
+/*       The longitude value IS critical in this function!            */
+/*       altit = the altitude which the Sun should cross              */
+/*               Set to -35/60 degrees for rise/set, -6 degrees       */
+/*               for civil, -12 degrees for nautical and -18          */
+/*               degrees for astronomical twilight.                   */
+/*         upper_limb: non-zero -> upper limb, zero -> center         */
+/*               Set to non-zero (e.g. 1) when computing rise/set     */
+/*               times, and to zero when computing start/end of       */
+/*               twilight.                                            */
+/*        *rise = where to store the rise time                        */
+/*        *set  = where to store the set  time                        */
+/*                Both times are relative to the specified altitude,  */
+/*                and thus this function can be used to compute       */
+/*                various twilight times, as well as rise/set times   */
+/* Return value:  0 = sun rises/sets this day, times stored at        */
+/*                    *trise and *tset.                               */
+/*               +1 = sun above the specified "horizon" 24 hours.     */
+/*                    *trise set to time when the sun is at south,    */
+/*                    minus 12 hours while *tset is set to the south  */
+/*                    time plus 12 hours. "Day" length = 24 hours     */
+/*               -1 = sun is below the specified "horizon" 24 hours   */
+/*                    "Day" length = 0 hours, *trise and *tset are    */
+/*                    both set to the time when the sun is at south.  */
+/*                                                                    */
+/**********************************************************************/
+{
+      double  d,  /* Days since 2000 Jan 0.0 (negative before) */
+      sr,         /* Solar distance, astronomical units */
+      sRA,        /* Sun's Right Ascension */
+      sdec,       /* Sun's declination */
+      sradius,    /* Sun's apparent radius */
+      t,          /* Diurnal arc */
+      tsouth,     /* Time when Sun is at south */
+      basetrise,  /* intermediate iteration result */
+      sidtime;    /* Local sidereal time */
+
+      int rc = 0; /* Return cde from function - usually 0 */
+
+      /* Compute d of 12h local mean solar time */
+      d = days_since_2000_Jan_0(year,month,day) + 0.5 - lon/360.0;
+
+      /* Compute the local sidereal time of this moment */
+      sidtime = revolution( GMST0(d) + 180.0 + lon );
+
+      /* Compute Sun's RA, Decl and distance at this moment */
+      sun_RA_dec( d, &sRA, &sdec, &sr );
+
+      /* Compute time when Sun is at south - in hours UT */
+      tsouth = 12.0 - rev180(sidtime - sRA)/15.0;
+
+      /* Compute the Sun's apparent radius in degrees */
+      sradius = 0.2666 / sr;
+
+      /* Do correction to upper limb, if necessary */
+      if ( upper_limb )
+            altit -= sradius;
+
+      /* Compute the diurnal arc that the Sun traverses to reach */
+      /* the specified altitude altit: */
+      {
+            double cost;
+            cost = ( sind(altit) - sind(lat) * sind(sdec) ) /
+                  ( cosd(lat) * cosd(sdec) );
+            if ( cost >= 1.0 )
+                  rc = -1, t = 0.0;       /* Sun always below altit */
+            else if ( cost <= -1.0 )
+                  rc = +1, t = 12.0;      /* Sun always above altit */
+            else
+                  t = acosd(cost)/15.04107;   /* The diurnal arc, hours */
+      }
+
+      /* Store rise and set times - in hours UT */
+      *trise = tsouth - t;
+      do {
+	basetrise=*trise;
+// printf("i basetrise=%f\n",basetrise);
+
+
+        sidtime = revolution( GMST0(d - 0.5 + tsouth/24.0) + 180.0 + lon );
+        sun_RA_dec( d - 0.5 + tsouth/24.0, &sRA, &sdec, &sr );
+        tsouth = 12.0 - rev180(sidtime - sRA)/15.0;
+        sradius = 0.2666 / sr;
+        if ( upper_limb )
+              altit -= sradius;
+        {
+              double cost;
+              cost = ( sind(altit) - sind(lat) * sind(sdec) ) /
+                    ( cosd(lat) * cosd(sdec) );
+              if ( cost >= 1.0 )
+                    rc = -1, t = 0.0;       /* Sun always below altit */
+              else if ( cost <= -1.0 )
+                    rc = +1, t = 12.0;      /* Sun always above altit */
+              else
+                    t = acosd(cost)/15.04107;   /* The diurnal arc, hours */
+        }
+        *trise = tsouth - t;
+
+      } while (fabs(basetrise - *trise)>=0.03);
+
+
+      return rc;
+}  /* __sunriset__ */
 
 
 
@@ -347,7 +455,7 @@ void moonpos( double d, double *lon, double *lat, double *r )
       E0 = M + e * RADEG * sind(M) * ( 1.0 + e * cosd(M) );
       E = E0 - (E0 - e * RADEG * sind(E0)-M)/(1.0 + e * cosd(E0));
 //	      printf("E=%f\n",E);
-      while (abs(E0-E)>0.005) {  
+      while (fabs(E0-E)>0.005) {  
 	      E0=E;
               E = E0 - (E0 - ((e * RADEG * sind(E0)-M)/(1.0 + e * cosd(E0))));
 //	      printf("E=%f\n",E);
@@ -516,7 +624,9 @@ void EqAz( double RA, double DEC, struct tm tnow , double lon, double lat, doubl
       /* Compute d of local mean solar time */
       d = days_since_2000_Jan_0(tnow.tm_year+1900,tnow.tm_mon+1,tnow.tm_mday) + tnow.tm_hour/24.0 + tnow.tm_min/(24*60.0) - lon/360.0;
       /* Compute the local sidereal time of this moment */
-      LST = revolution( GMST0(d) + 180.0 + lon );
+//      LST = revolution( GMST0(d) + 180.0 + lon );
+      LST = 100.46 + 0.985647 * d + lon + 15*(tnow.tm_hour + tnow.tm_min/60.0);
+//      printf("LST=%f\n",LST);
       HA = LST - RA;
       x = cosd(HA) * cosd(DEC);
       y = sind(HA) * cosd(DEC);

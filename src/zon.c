@@ -208,7 +208,7 @@ int main(int argc, char **argv)
       char *filename; filename=malloc(sizeof(char)*81);
       if (arguments.location==NULL) { 
 	      lon=0; lat=0;
-	      strncpy(filename,getenv("HOME"),80);
+	      strncpy(filename,getenv("HOME")?getenv("HOME"):"",80);
 	      strncat(filename,"/.config/zon.conf",80);
 	      fp=fopen(filename,"r");
 	      if  (! fp) { 
@@ -341,6 +341,14 @@ int main(int argc, char **argv)
 		   printf("+%s\n",(arguments.verbose >=1)?" up now":"");  
 	   else 
 		   printf("-%s\n",(arguments.verbose >=1)?" down now":"");  
+	   double RAss,decss,rss,azss,altss,d;
+	   if (arguments.current) if (arguments.verbose >=2) {
+		    d = days_since_2000_Jan_0(base.tm_year+1900,base.tm_mon+1,base.tm_mday) + base.tm_hour/24.0 + base.tm_min/(24*60.0); 
+		   sun_RA_dec(d,&RAss,&decss,&rss);
+		   EqAz(RAss,decss,base,lon,lat,&azss,&altss);
+		   printf("sun azimuth=%f  altitude=%f\n",azss,altss);
+	   }
+
 	
 	   if (arguments.mid) {
 		   tset = (trise+tset)/2;
@@ -349,6 +357,9 @@ int main(int argc, char **argv)
 		   printf("%s%s\n",datestr,(arguments.verbose>=1)?" mid":"");
 	   }
 
+	//   rs =  __sunrise__( base.tm_year+1900, base.tm_mon+1, base.tm_mday, lon, lat,
+        //          arguments.angle, arguments.rim, &tnoon, &tarc );
+	//	   printf("trise=%f\n",tnoon);
       return 0;
 }
 
