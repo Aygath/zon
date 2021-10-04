@@ -79,7 +79,7 @@ static struct argp_option options[] = {
   {"astronomical",3,0,      0,  "Produce data about astronomical twighlight, starting when centre of sun is 18 degrees below horizon" },
   {0,0,0,0, "" },
   {"angle"     ,5,  "degrees",      0,  "Specify your own rise/set angle of the centre of the sun below horizon" },
-  {"rim"       ,4,  0,      0,  "Specify to compensate angle for upper rim of the sun, so to act like sun rise/set" },
+  {"rim"       ,4,  0,      0,  "Specify to compensate angle for upper rim of the sun, so to act like sun rise/set. Use after --angle" },
   { 0 }
 };
  
@@ -127,6 +127,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
       break;
     case 5:
       sscanf(arg,"%lf",&arguments->angle);  
+      arguments->rim =0; 
       break;
     case 'c':
       arguments->current = 1;
