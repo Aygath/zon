@@ -61,8 +61,8 @@ static struct argp_option options[] = {
   {"mid",      'm', 0,      0,  "Produce time exactly between the next rise and set times, i.e. deep midnight or high noon" },
   {"current",  'c', 0,      0,  "Whether sun is up \"+\" or down \"-\". Default if no display type selected." },
   {0,0,0,0, "Options to specify when and where on earth" },
-  {"location", 'l', "+DDMM+DDDMM|+DDMMSS+DDDMMSS", 0,  "Calculate for latitude (+N/-S) and longitude (+E-W) in Degrees, Minutes and Seconds. Overrides configuration files /etc/zon.conf and ~/.config/zon.conf" },
-  {"date",     'd', "YYYY-MM-DDTHH:MM+ZZ:zz", 0,  "Calculate for specified iso-formatted time. Defaults to current system UTC date. Colon in timezone may be omitted (compatibility)" },
+  {"location", 'l', "+DDMM+DDDMM", 0,  "or +DDMMSS+DDDMMSS Calculate for latitude (+N/-S) and longitude (+E-W) in Degrees, Minutes and Seconds. Overrides configuration files /etc/zon.conf and ~/.config/zon.conf" },
+  {"date",     'd', "iso-time", 0,  "YYYY-MM-DDTHH:MM+ZZ[:]zz Calculate for specified iso-formatted time. Defaults to current system time. Specify \"date <date syntax>\" to parse by invoking the date command" },
   {0,0,0,0, "Options to format the output. Defaults to iso-format" },
   {"at",       '@', 0,      0,  "Format output as date usable by the at command (in UTC), HH:MM YYYY-MM-DD" },
   {"systemd",  'y', 0,      0,  "Format output as required for systemd-run,  YYYY-MM-DD HH:MM UTC" },
@@ -156,7 +156,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
       arguments->verbose += 1;
       break;
     case 'd':
-      if (regcomp(&regex, "^((19)|(20))[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(\\+|-)[0-9]{2}:?[0-9]{2}$", REG_EXTENDED ) || regexec(&regex, arg, 0, NULL, 0)) argp_usage (state);
+      if (regcomp(&regex, "^(date[ ].*)|(((19)|(20))[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(\\+|-)[0-9]{2}:?[0-9]{2})$", REG_EXTENDED ) || regexec(&regex, arg, 0, NULL, 0)) argp_usage (state);
       regfree(&regex);
       arguments->date = arg;
       break;
@@ -248,10 +248,22 @@ int main(int argc, char **argv)
 
       time(&tnow);
       tbase=tnow;
+      FILE *datein;
  
 // modify base according tot cli-arguments
       gmtime_r(&tbase,&base); 
       int zhours,zmin;
+// If the date parameter starts with "date ", then pass it to the date command, to provide a datestring 
+      if (( arguments.date!=NULL) && ( strstr(arguments.date,"date ") == arguments.date))  { 
+           strcpy(datestr,"date -Im -d \"");
+           strcat(datestr,&arguments.date[5]);
+           strcat(datestr,"\"");
+           if ( arguments.verbose  >= 2 )
+		   printf("running date command: %s\n",datestr ); 
+	   if ( ( (datein=popen(datestr,"r")) != NULL ) &&
+                ( fgets(datestr,80,datein) != NULL  ) ) arguments.date=datestr;
+	   else exit(EINVAL);
+      }
       if ( arguments.date!=NULL) { 
 	 if (strlen(arguments.date)==22) 
 	   sscanf(arguments.date, "%4d-%2d-%2dT%2d:%2d%3d:%2d", &base.tm_year, &base.tm_mon, &base.tm_mday, &base.tm_hour, &base.tm_min, &zhours, &zmin);  

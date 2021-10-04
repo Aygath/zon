@@ -1,9 +1,9 @@
 [DESCRIPTION]
 This is the README for zon
 
-This program will print the time for the next sun rise or sun set in your location. It provides integration with systemd or cron/at timers in order to activate relative to sun rise and sun set. This could be used for swithing on and off your garden lights, solar panels, security alarms etc.
+This command line tool will print the time for the next sun rise or sun set in your location. It integrates with systemd or cron/at timers in order to activate relative to sun rise and sun set. This is accurate enough to be used for swithing on and off your garden lights, solar panels, security alarms etc.
 
-This command line tool could be called in cron or as a timestamp to a systemd-timer at e.g. 1:00 AM to delay the actual execution of a job to sun rise or sun set on the same date. You can delay by using the at command or the systemd-run command (see examples). However, this method might not work in regions with higher latitudes than about 65 degrees. 
+This program could be called in cron or as a timestamp to a systemd-timer at e.g. 1:00 AM to delay the actual execution of a job to sun rise or sun set on the same date. You can delay by using the at command or the systemd-run command (see examples). However, this method might not work in regions with higher latitudes than about 65 degrees. 
 
 In regions above 65 or below -65 degrees latitude the previous scheduling method might not work, because in those regions nights or days can be very short or even non existent periodically. In those cases you can construct a chain of invocations of this tool, because it produces the __next__ sun rise/set, which can be on any later calendar date. Just make sure that your sun-rise job eventually schedules the next invocation of the sun rise job (see examples).
 
@@ -11,9 +11,9 @@ You have to supply your location on earth by latitude and longitude by giving th
 
 Output is always in UTC, because that is convenient for scripting and unambigious for scheduling. Default output has an ISO time stamp format, eg 2021-02-28T01:00+00:00. For display purposes the regular date command can convert this to whatever desired timezone and formatting, e.g. by 'date -d <isotimestamp>'. See examples.
 
-This program will give you the next rise and/or set time if your system-time is accurate enough. You can however specify any other reference date/time, by supplying a time to zon's  '-d' parameter in ISO format. This ISO format can easily be generated with the 'date -Im' command and may specify a time zone other than UTC. See examples.
+This program will give you the next rise and/or set time if your system-time is accurate enough. You can however specify any other reference date/time, by supplying a time to zon's  '-d' parameter in ISO format. This ISO format can easily be generated with the 'date -Im' command and may specify a time zone other than UTC. See examples. For convenience the program will invoke the date command for you, if you specify "date today + 2 days" (e.g.) for de -d switch.
 
-With the '-@' parameter output is usable for scheduling with the 'at' command, but make sure you set the TZ environemnt variable to utc before invoking the at command. For example: echo myjob.sh | TZ=utc at `zon -@' will run your job at the next sun rise (display the resulting schedule with the 'TZ=utc atq' command). You should not rely on the "utc" directive of the at command, because it is not always observed (at least, that is what the author has found).
+With the '-@' parameter output is usable for scheduling with the 'at' command, but make sure you set the TZ environemnt variable to utc before invoking the at command. For example: echo myjob.sh | TZ=utc at `zon -r@' will run your job at the next sun rise (display the resulting schedule with the 'TZ=utc atq' command). You should not rely on the "utc" directive of the at command, because it is not always observed (at least, that is what the author has found).
 
 With the '-y' parameter the output is usable for ad hoc/transient scheduling with the 'systemd-run' command, because it will contain the "UTC" timezone indicator. Be reminded that systemd-run --on-calendar is a recent addition and may not work for you.
  
