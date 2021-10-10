@@ -298,6 +298,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 zon_SOURCES = src/zon.c
+EXTRA_DIST = src/astro.c
 man_MANS = zon.1
 all: all-am
 
