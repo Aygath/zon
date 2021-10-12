@@ -264,6 +264,9 @@ int main(int argc, char **argv)
 	   if ( ( (datein=popen(datestr,"r")) != NULL ) &&
                 ( fgets(datestr,80,datein) != NULL  ) ) arguments.date=datestr;
 	   else exit(EINVAL);
+	   arguments.date[strcspn(arguments.date, "\n")] = 0;
+           if ( arguments.verbose  >= 2 )
+                   printf("date output: %s\n",arguments.date ); 
       }
       if ( arguments.date!=NULL) { 
 	 if (strlen(arguments.date)==22) 
