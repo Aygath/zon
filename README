@@ -3,11 +3,13 @@ This is the README for zon
 
 This command line tool will print the time for the next sun rise or sun set in your location. It integrates with systemd or cron/at timers in order to activate relative to sun rise and sun set. This is accurate enough to be used for swithing on and off your garden lights, solar panels, security alarms etc.
 
+"Your location" can be approximated from the zone1970.tab file. Try: grep $TZ /usr/share/zoneinfo/zone1970.tab
+
+For this to work correctly you have to supply your location on earth by latitude and longitude by giving the parameter '-l' or by ~/.config/zon.conf or /etc/zon.conf, see --help instructions below.
+
 This program could be called in cron or as a timestamp to a systemd-timer at e.g. 1:00 AM to delay the actual execution of a job to sun rise or sun set on the same date. You can delay by using the at command or the systemd-run command (see examples). However, this method might not work in regions with higher latitudes than about 65 degrees. 
 
 In regions above 65 or below -65 degrees latitude the previous scheduling method might not work, because in those regions nights or days can be very short or even non existent periodically. In those cases you can construct a chain of invocations of this tool, because it produces the __next__ sun rise/set, which can be on any later calendar date. Just make sure that your sun-rise job eventually schedules the next invocation of the sun rise job (see examples).
-
-You have to supply your location on earth by latitude and longitude by giving the parameter '-l' or by ~/.config/zon.conf or /etc/zon.conf, see --help instructions below. 
 
 Output is always in UTC, because that is convenient for scripting and unambigious for scheduling. Default output has an ISO time stamp format, eg 2021-02-28T01:00+00:00. For display purposes the regular date command can convert this to whatever desired timezone and formatting, e.g. by 'date -d <isotimestamp>'. See examples.
 
