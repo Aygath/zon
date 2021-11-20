@@ -65,7 +65,7 @@ double rev180( double x );
 double GMST0( double d );
 void moonpos( double d, double *lon, double *lat, double *r );
 void mon_RA_dec( double d, double *RA, double *dec, double *r );
-
+int __sunrise__(int year, int month,int day, double lon, double lat, double altit, int upper_limb, double *trise, double *tset);
 
 
 int __sunnoonarct__( int year, int month, int day, double lon, double lat,
@@ -149,9 +149,12 @@ int __sunnoonarct__( int year, int month, int day, double lon, double lat,
       /* Store rise and set times - in hours UT */
 //      *trise = tsouth - t;
 //      *tset  = tsouth + t;
-
+  double trise, tset; 
+  rc = __sunrise__(year,month,day,lon,lat,altit,upper_limb,&trise,&tset);
+//      *noon = (tset + trise)/2; 
+//      *arc = (tset - trise); 
       return rc;
-}  /* __sunriset__ */
+}  /* __sunnoonarct */
 
 
 
@@ -272,80 +275,66 @@ int __sunrise__( int year, int month, int day, double lon, double lat,
 /*                                                                    */
 /**********************************************************************/
 {
+      int itercount=0,PlusMinus; /* number of iterations */
       double  d,  /* Days since 2000 Jan 0.0 (negative before) */
       sr,         /* Solar distance, astronomical units */
       sRA,        /* Sun's Right Ascension */
       sdec,       /* Sun's declination */
       sradius,    /* Sun's apparent radius */
+      saltitude,  /* MW: saved input altitude */
       t,          /* Diurnal arc */
       tsouth,     /* Time when Sun is at south */
-      basetrise,  /* intermediate iteration result */
+      iterd,	  /* reference time this iteration as fraction of day */
+      itertrise,  /* intermediate iteration result */
       sidtime;    /* Local sidereal time */
 
       int rc = 0; /* Return cde from function - usually 0 */
-
-      /* Compute d of 12h local mean solar time */
-      d = days_since_2000_Jan_0(year,month,day) + 0.5 - lon/360.0;
-
-      /* Compute the local sidereal time of this moment */
-      sidtime = revolution( GMST0(d) + 180.0 + lon );
-
-      /* Compute Sun's RA, Decl and distance at this moment */
-      sun_RA_dec( d, &sRA, &sdec, &sr );
-
-      /* Compute time when Sun is at south - in hours UT */
-      tsouth = 12.0 - rev180(sidtime - sRA)/15.0;
-
-      /* Compute the Sun's apparent radius in degrees */
-      sradius = 0.2666 / sr;
-
-      /* Do correction to upper limb, if necessary */
-      if ( upper_limb )
-            altit -= sradius;
-
-      /* Compute the diurnal arc that the Sun traverses to reach */
-      /* the specified altitude altit: */
-      {
-            double cost;
-            cost = ( sind(altit) - sind(lat) * sind(sdec) ) /
-                  ( cosd(lat) * cosd(sdec) );
-            if ( cost >= 1.0 )
-                  rc = -1, t = 0.0;       /* Sun always below altit */
-            else if ( cost <= -1.0 )
-                  rc = +1, t = 12.0;      /* Sun always above altit */
-            else
-                  t = acosd(cost)/15.04107;   /* The diurnal arc, hours */
-      }
-
-      /* Store rise and set times - in hours UT */
-      *trise = tsouth - t;
+      for (PlusMinus=-1;PlusMinus<=1;PlusMinus +=2) {
+        /* Compute d of 12h local mean solar time */
+      iterd = 12.0 / 24.0; 
       do {
-	basetrise=*trise;
-// printf("i basetrise=%f\n",basetrise);
+        d = days_since_2000_Jan_0(year,month,day) + iterd - lon/360.0;
 
+        /* Compute the local sidereal time of this moment */
+        sidtime = revolution( GMST0(d) + 180.0 + lon );
 
-        sidtime = revolution( GMST0(d - 0.5 + tsouth/24.0) + 180.0 + lon );
-        sun_RA_dec( d - 0.5 + tsouth/24.0, &sRA, &sdec, &sr );
-        tsouth = 12.0 - rev180(sidtime - sRA)/15.0;
+          /* Compute Sun's RA, Decl and distance at this moment */
+        sun_RA_dec( d, &sRA, &sdec, &sr );
+
+        /* Compute time when Sun is at south - in hours UT */
+        tsouth = 12.0 - rev180(sidtime - sRA)/15.0 ; 
+
+        /* Compute the Sun's apparent radius in degrees */
         sradius = 0.2666 / sr;
-        if ( upper_limb )
-              altit -= sradius;
-        {
-              double cost;
-              cost = ( sind(altit) - sind(lat) * sind(sdec) ) /
-                    ( cosd(lat) * cosd(sdec) );
-              if ( cost >= 1.0 )
-                    rc = -1, t = 0.0;       /* Sun always below altit */
-              else if ( cost <= -1.0 )
-                    rc = +1, t = 12.0;      /* Sun always above altit */
-              else
-                    t = acosd(cost)/15.04107;   /* The diurnal arc, hours */
-        }
-        *trise = tsouth - t;
-
-      } while (fabs(basetrise - *trise)>=0.03);
 
 
+        /* Compute the diurnal arc that the Sun traverses to reach */
+        /* the specified altitude altit: */
+        /* Do correction to upper limb, if necessary */
+      	
+        double cost;
+        cost = ( sind(altit - (( upper_limb )?sradius:0)) - sind(lat) * sind(sdec) ) /
+       	           ( cosd(lat) * cosd(sdec) );
+        if ( cost >= 1.0 )
+             rc = -1, t = 0.0;       /* Sun always below altit */
+        else if ( cost <= -1.0 )
+             rc = +1, t = 12.0;      /* Sun always above altit */
+        else
+             t = acosd(cost)/15.04107;   /* The diurnal arc, hours */
+      
+	if (PlusMinus <0) {
+	  itertrise = *trise;
+          *trise = tsouth - t; /* may be negative as well */
+	  iterd = *trise/24.0;
+	} else {
+	  itertrise = *tset;
+          *tset = tsouth + t; /* may be negative as well */
+	  iterd = *tset/24.0;
+	} 
+        itercount +=1; 
+      } while (itercount<3 || fabs(itertrise - (PlusMinus<0?*trise:*tset))>=0.0083 ) ; 
+      /* Store rise and set times - in hours UT */
+      }
       return rc;
 }  /* __sunriset__ */
 
@@ -440,7 +429,6 @@ void moonpos( double d, double *lon, double *lat, double *r )
 	     zeclip,    /* ecliptic coordinates */
              v;         /* True anomaly */
 
-//     printf ("d=%f\n",d);
       /* Compute mean elements */
       M = revolution( 115.3654 + 13.0649929509 * d );
       w = revolution(318.0634 + 0.1643573223 * d);
@@ -626,7 +614,6 @@ void EqAz( double RA, double DEC, struct tm tnow , double lon, double lat, doubl
       /* Compute the local sidereal time of this moment */
 //      LST = revolution( GMST0(d) + 180.0 + lon );
       LST = 100.46 + 0.985647 * d + lon + 15*(tnow.tm_hour + tnow.tm_min/60.0);
-//      printf("LST=%f\n",LST);
       HA = LST - RA;
       x = cosd(HA) * cosd(DEC);
       y = sind(HA) * cosd(DEC);

@@ -36,6 +36,7 @@ Released to the public domain by Paul Schlyter, December 1992
 #include <stdlib.h>
 #include <regex.h>
 #include "astro.c"
+#include <signal.h>
 
 
 const char *argp_program_version =
@@ -70,7 +71,7 @@ static struct argp_option options[] = {
   {0,0,0,0, "" },
   {"verbose",  'v', 0,      0,  "Produce a label or if repeated give all base and calculated data, including date and location" },
   {0,0,0,0, "Options to select the kind of twighlight" },
-  {"sun",       0,  0,      0,  "Default: Produce start, ending and duration of visibility of top of sun above horizon, i.e. sunrise and sunset" },
+  {"sun",       0,  0,      0,  "Default: Produce start, ending and duration of visibility of top of sun above horizon, i.e. sunrise and sunset. Both atmospheric refraction (-35/60 degree) and the apparent size of the solar disk are accounted for." },
   {0,0,0,0, "" },
   {"civil",     1,  0,      0,  "Produce data about civil twighlight, starting when centre of sun is 6 degrees below horizon" },
   {0,0,0,0, "" },
@@ -79,18 +80,19 @@ static struct argp_option options[] = {
   {"astronomical",3,0,      0,  "Produce data about astronomical twighlight, starting when centre of sun is 18 degrees below horizon" },
   {0,0,0,0, "" },
   {"angle"     ,5,  "degrees",      0,  "Specify your own rise/set angle of the centre of the sun below horizon" },
-  {"rim"       ,4,  0,      0,  "Specify to compensate angle for upper rim of the sun, so to act like sun rise/set. Use after --angle" },
+  {"rim"       ,4,  0,      0,  "Specify to compensate angle for the upper rim of the sun (i.e. the radius of the apparent solar disk). Like at sun rise/set. Use after --angle" },
   { 0 }
 };
  
 /* Used by main to communicate with parse_opt. */
 struct arguments
 {
-  double angle;
+  double angle,latitude,longitude;
   int rise, set, mid, current, verbose, rim;
   char *date, *location, *dateformat;
 };
 
+char *locationRE="^((([NS-]?)([0-9]+(\\.[0-9]+)?)([NZ]?),([EW-]?)([0-9]+(\\.[0-9]+)?)([EW]?))|(((\\+|-)[0-9]{4}([0-9]{2})?)((\\+|-)[0-9]{5}([0-9]{2})?)))$"; 
 /* Parse a single option. */
 static error_t
 parse_opt (int key, char *arg, struct argp_state *state)
@@ -104,8 +106,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
     {
     case 0:
 	// sun rise (rim of sun above horizon)
-      arguments->angle = -35/60;
-      arguments->rim =1; 
+      arguments->angle = -35.0/60.0; /* compensare atmospheric refraction */
+      arguments->rim =1; /* compensate radius of solar disk */
       break;
     case 1:
       // civil twighlight (center of sun 6 degrees below)
@@ -162,10 +164,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
       arguments->date = arg;
       break;
     case 'l':
-      if (regcomp(&regex, "^(\\+|-)[0-9]{4}([0-9]{2})?(\\+|-)[0-9]{5}([0-9]{2})?$", REG_EXTENDED ) || regexec(&regex, arg, 0, NULL, 0)) argp_usage (state);
-      regfree(&regex);
-      if (strlen(arg)!=15 && strlen(arg)!=11) argp_usage (state);
+      // malloc_usable_size()
+      if (regcomp(&regex, locationRE , REG_EXTENDED ) || regexec(&regex, arg, 0, NULL, 0)) argp_usage (state);
       arguments->location = arg;
+      regfree(&regex);
       break;
 
     default:
@@ -188,7 +190,7 @@ int main(int argc, char **argv)
       arguments.set=0;
       arguments.mid=0;
       arguments.verbose=0;
-      arguments.angle=-35/60;
+      arguments.angle=-35.0/60.0;
       arguments.rim=1;
       arguments.date=NULL;
       arguments.location=NULL;
@@ -196,16 +198,19 @@ int main(int argc, char **argv)
       argp_parse (&argp, argc, argv, 0, 0, &arguments);
       if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid ) ) arguments.current=1;
 
+
       double lon=0,lat=0;
       double tnoon,tarc;
+      double hset,hrise;
       int    rs;
-
-
+      regex_t lregex;
+      size_t lnmatchr=20; // set to 20; too large, but regex might change in future releases.
+      regmatch_t lmatchptr[lnmatchr]; 
 // Location on earth is our most important parameter for the calculation:
 // Successively try: CLI-argument, /etc/zon.conf, TZ environment or /etc/timezone (to inspect /usr/share/zoneinfo.zone1970.tab) or set to 0 Norht, 0 West
 // char * getenv (const char *name)
       FILE *fp;
-      char *locationstr; locationstr=malloc(sizeof(char)*31);
+      char *locationstr; locationstr=malloc(sizeof(char)*81);
       char *filename; filename=malloc(sizeof(char)*81);
       if (arguments.location==NULL) { 
 	      lon=0; lat=0;
@@ -224,10 +229,54 @@ int main(int argc, char **argv)
 			     if (arguments.verbose >=2 ) printf("Location str from file %s (should be +DDMM[SS]+DDDMM[SS]): %s  len %lu \n",filename,arguments.location,strlen(arguments.location)); 
 	             fclose(fp);
 		     }
+	      } else {
+		      // try to grep TZ from zone1970.tab
+		      // Search for TZ in environment and /etc/timezone
+		      char *TZ;
+		      TZ=getenv("TZ"); if ( TZ!=NULL && arguments.verbose >= 2 ) printf("TZ found as environment variable: %s\n",TZ);
+		      if ( TZ==NULL ) {
+		        fp=fopen("/etc/timezone","r");
+			if (fp) {
+			  TZ=malloc(sizeof(char)*81);
+			  if ( fgets(TZ,80,fp) !=NULL ) TZ[strcspn(TZ, "\n")] = 0;
+			  fclose(fp);
+		          if (arguments.verbose >=2 ) printf("TZ from /etc/timezone: %s\n",TZ );
+			  
+			}
+		      }
+		      // If TZ is available search zone1970.tab
+		      if ( TZ!=NULL ) {
+  		        regex_t zregex;
+		        size_t nmatchr=5; // set to 5; too large, but regex might change in future releases.
+		        regmatch_t matchptr[nmatchr]; 
+		        fp=fopen("/usr/share/zoneinfo/zone1970.tab","r");
+		        if (fp) {
+      			  if (0 != regcomp(&zregex, "^[A-Z,]+\t([+-][0-9]{4,6}[+-][0-9]{5,7})\t([^\n\t ]+)", REG_EXTENDED )) exit(SIGABRT); 
+			  while ( arguments.location==NULL && fgets(locationstr,80,fp) ) {
+		      	     if (0 == regexec(&zregex, locationstr, nmatchr, matchptr, 0) ) 
+				      if ( 0 == strncmp(&locationstr[matchptr[2].rm_so],TZ, matchptr[2].rm_eo-matchptr[2].rm_so) )  {
+					      arguments.location = &locationstr[matchptr[1].rm_so];
+					      arguments.location[matchptr[1].rm_eo-matchptr[1].rm_so]='\0';
+					      if (arguments.verbose >=2 ) printf("Match found in zone1970: %s\nLocation from zone1970: %s\n",locationstr,arguments.location );
+				      }
+			  }
+		          regfree(&zregex) ; 
+			  fclose(fp);
+		        }
+		      }
 	      }
       } 
       if (arguments.location!=NULL) { 
 	 if (arguments.verbose >= 2) printf("Location str (should be +DDMM[SS]+DDDMM[SS]): %s  len %lu \n",arguments.location,strlen(arguments.location)); 
+	 // regexec(&lregex, arguments.location, lnmatchr, lmatchptr, 0);
+         // if (lmatchptr[2].rm_so>0) {
+         if (1==0) {
+ 	   sscanf(&arguments.location[lmatchptr[4].rm_so],"%lf",&lat);
+ 	   sscanf(&arguments.location[lmatchptr[8].rm_so],"%lf",&lon);
+	   // 3 en 6 zijn latitude; 7 en 10 zijn longitude;
+	   if (arguments.location[lmatchptr[3].rm_so]=='S' || arguments.location[lmatchptr[3].rm_so]=='-' || arguments.location[lmatchptr[6].rm_so]=='S') lat *= -1; 
+	   if (arguments.location[lmatchptr[7].rm_so]=='E' || arguments.location[lmatchptr[7].rm_so]=='-' || arguments.location[lmatchptr[10].rm_so]=='E')lon *= -1; 
+         }
          if ( strlen(arguments.location)==11 ) {
            sscanf(arguments.location, "%5lf%6lf", &lat, &lon); 
            lat = ((int) lat / 100) + (double)((int) lat % 100)/60 ;
@@ -291,20 +340,21 @@ int main(int argc, char **argv)
            validtrise=0;
            validtset=0;
            do {
-	     rs = __sunnoonarct__(base.tm_year+1900,base.tm_mon+1,base.tm_mday + skipped_days,lon,lat,  arguments.angle, arguments.rim, &tnoon, &tarc ); 
+	     //rs = __sunnoonarct__(base.tm_year+1900,base.tm_mon+1,base.tm_mday + skipped_days,lon,lat,  arguments.angle, arguments.rim, &tnoon, &tarc ); 
+	     rs = __sunrise__(base.tm_year+1900,base.tm_mon+1,base.tm_mday + skipped_days,lon,lat,  arguments.angle, arguments.rim, &hrise, &hset ); 
 
 	     trise=tbase + skipped_days*24*60*60;
 	     tmrise= *gmtime(&trise);
-	     tmrise.tm_hour = (int)((tnoon-tarc)*60) / 60;
-	     tmrise.tm_min  = (int)((tnoon-tarc)*60) % 60;
+	     tmrise.tm_hour = (int)(hrise*60) / 60;
+	     tmrise.tm_min  = (int)(hrise*60) % 60;
 	     tmrise.tm_sec = 0 ; 
 	     tmrise.tm_isdst = 0 ; 
 	     trise=timegm(&tmrise); 
 
 	     tset=tbase + skipped_days*24*60*60;
 	     tmset= *gmtime(&tset);
-	     tmset.tm_hour = (int)((tnoon+tarc)*60) / 60;
-	     tmset.tm_min  = (int)((tnoon+tarc)*60) % 60;
+	     tmset.tm_hour = (int)(hset*60) / 60;
+	     tmset.tm_min  = (int)(hset*60) % 60;
 	     tmset.tm_sec = 0 ;
 	     tmset.tm_isdst = 0 ;
 	     tset=timegm(&tmset); 
@@ -373,9 +423,6 @@ int main(int argc, char **argv)
 		   printf("%s%s\n",datestr,(arguments.verbose>=1)?" mid":"");
 	   }
 
-	//   rs =  __sunrise__( base.tm_year+1900, base.tm_mon+1, base.tm_mday, lon, lat,
-        //          arguments.angle, arguments.rim, &tnoon, &tarc );
-	//	   printf("trise=%f\n",tnoon);
       return 0;
 }
 
