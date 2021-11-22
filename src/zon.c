@@ -291,7 +291,6 @@ int main(int argc, char **argv)
       if ( arguments.verbose >= 2  ) printf( "Latitude (+ is north) and Longitude (+ is east) decimal values : %+lf %+lf\n", lat, lon );
 
 // moment in time is our next most important reference for the output: 
-//      tzset();
       time_t tnow,tbase,trise,tset,validtrise,validtset;
       struct tm base,tmrise,tmset;
       char *datestr; datestr=malloc(sizeof(char)*81);
@@ -335,56 +334,59 @@ int main(int argc, char **argv)
               printf( "Local Timezone secs                 %ld\n", timezone);
       }; 
 
-      int skipped_days, savedrs;
-	   skipped_days = 0 ; 
+      double RAss,decss,rss,azss,altss,d;
+      d = days_since_2000_Jan_0(base.tm_year+1900,base.tm_mon+1,base.tm_mday) + base.tm_hour/24.0 + base.tm_min/(24*60.0); 
+      sun_RA_dec(d,&RAss,&decss,&rss);
+      EqAz(RAss,decss,base,lon,lat,&azss,&altss);
+      /* Convert distance variable to the Sun's apparent radius in degrees */
+      rss = 0.2666 / rss;
+
+      int skipped_days, yesterdayrs, tomorrowrs;
+      time_t ytrise=0, ytset=0, mtrise=0, mtset=0;
+      trise=0; tset=0;
+	   skipped_days=0;
            validtrise=0;
            validtset=0;
            do {
-	     //rs = __sunnoonarct__(base.tm_year+1900,base.tm_mon+1,base.tm_mday + skipped_days,lon,lat,  arguments.angle, arguments.rim, &tnoon, &tarc ); 
-	     rs = __sunrise__(base.tm_year+1900,base.tm_mon+1,base.tm_mday + skipped_days,lon,lat,  arguments.angle, arguments.rim, &hrise, &hset ); 
+             // For our decisions we need data for yesterday, today and tomorrow. Calculate tomorrows data always and first time calculate the three dates 
+	     do {
+		ytrise=trise; ytset=tset; yesterdayrs=rs;
+		trise=mtrise; tset=mtset; rs=tomorrowrs; 
+	        tomorrowrs = __sunrise__(base.tm_year+1900,base.tm_mon+1,base.tm_mday + skipped_days + 1 - (trise==0?1:0) -(ytrise==0?1:0),lon,lat,  arguments.angle, arguments.rim, &hrise, &hset ); 
+	        mtrise=tbase + (skipped_days + 1 - (trise==0?1:0) -(ytrise==0?1:0))*24*60*60;
+	        tmrise= *gmtime(&mtrise);
+	        tmrise.tm_hour = (int)(hrise*60) / 60;
+	        tmrise.tm_min  = (int)(hrise*60) % 60;
+	        tmrise.tm_sec = 0 ; 
+	        tmrise.tm_isdst = 0 ; 
+	        mtrise=timegm(&tmrise); 
 
-	     trise=tbase + skipped_days*24*60*60;
-	     tmrise= *gmtime(&trise);
-	     tmrise.tm_hour = (int)(hrise*60) / 60;
-	     tmrise.tm_min  = (int)(hrise*60) % 60;
-	     tmrise.tm_sec = 0 ; 
-	     tmrise.tm_isdst = 0 ; 
-	     trise=timegm(&tmrise); 
+	        mtset=tbase + (skipped_days + 1 - (tset==0?1:0) -(ytset==0?1:0))*24*60*60;
+	        tmset= *gmtime(&mtset);
+	        tmset.tm_hour = (int)(hset*60) / 60;
+	        tmset.tm_min  = (int)(hset*60) % 60;
+	        tmset.tm_sec = 0 ;
+	        tmset.tm_isdst = 0 ;
+	        mtset=timegm(&tmset); 
+                // printf( "\n%i mrs and mtrise  in local time zone     %d   %s", skipped_days,tomorrowrs,ctime(&mtrise));
+                // printf(   "%i mrs and mtset   in local time zone     %d   %s", skipped_days,tomorrowrs,ctime(&mtset));
+	     } while ( ytrise==0 && ytset==0); // Only first time will return in order to run three loops.
 
-	     tset=tbase + skipped_days*24*60*60;
-	     tmset= *gmtime(&tset);
-	     tmset.tm_hour = (int)(hset*60) / 60;
-	     tmset.tm_min  = (int)(hset*60) % 60;
-	     tmset.tm_sec = 0 ;
-	     tmset.tm_isdst = 0 ;
-	     tset=timegm(&tmset); 
-
-	     if (skipped_days==0) {
-		     savedrs=rs;
-		     if (arguments.verbose >= 2) {
-	               if ( rs>0 ) printf("++ up entire solar day %+i\n",rs);
-	               if ( rs<0 ) printf("-- down entire solar day %+i\n",rs);
-	               if ( rs==0 ) printf(" Day with at a sun set and/or rise event. RS %+i\n",rs);
-		     }; 
+             // printf(   "%i rs and  trise  in local time zone     %d   %s", skipped_days,rs,ctime(&trise));
+             // printf(   "%i rs and  tset   in local time zone     %d   %s", skipped_days,rs,ctime(&tset));
+	     if (skipped_days==0 && arguments.verbose >= 2) {
+	               if ( rs>0 ) printf("++ up entire solar day %i\n",rs);
+	               if ( rs<0 ) printf("-- down entire solar day %i\n",rs);
+	               if ( rs==0 ) printf(" Day with a sun set and/or rise event. RS %i\n",rs);
+	               printf("RS yesterday=%i, tomorrow=%i)\n",yesterdayrs,tomorrowrs);
 	     };
-             if (rs==0) {
-	       if (savedrs>0) {
-		      if ( (!validtset) && tset>tbase ) validtset=tset;
-	              if ( (!validtrise) && validtset && (trise>validtset) ) validtrise=trise;
-               } else if (savedrs<0 ){
-	              if ( (!validtrise) && trise>tbase ) validtrise=trise;
-	              if ( (!validtset) && validtrise && (tset>validtrise) ) validtset=tset;
-               } else {
-	              if ( (!validtset) && (tset>tbase) ) validtset=tset;
-	              if ( (!validtrise) && (trise>tbase) ) validtrise=trise;
-	       };
-	     };
-	 //    printf("RS value : %+i\n",rs);
-	 //    printf("skipped_days value : %+i\n",skipped_days);
-	 //    printf( "trise  %s", ctime(&trise));
-	 //    printf( "tset  %s", ctime(&tset));
-	 //    printf( "vtrise  %s", ctime(&validtrise));
-	 //    printf( "vtset  %s", ctime(&validtset));
+	     if (rs==0) {
+	              if ( (!validtrise) && (trise>=tbase)  && 
+				      ( yesterdayrs<=0 ) ) validtrise=trise;
+	              if ( (!validtset)  && (tset >=tbase)  &&
+				      ( tomorrowrs >=0 ) ) validtset=tset;
+	     }
+
 	     skipped_days +=1 ; 
            } while  ( ( (!validtrise)|| (!validtset)) && (skipped_days<365)); 
 
@@ -403,19 +405,15 @@ int main(int argc, char **argv)
 		   printf("%s%s\n",datestr,(arguments.verbose>=1)?" set":"");
 	   }
 
-	   if (arguments.current) if (tset<trise)
-		   printf("+%s\n",(arguments.verbose >=1)?" up now":"");  
-	   else 
-		   printf("-%s\n",(arguments.verbose >=1)?" down now":"");  
-	   double RAss,decss,rss,azss,altss,d;
-	   if (arguments.current) if (arguments.verbose >=2) {
-		    d = days_since_2000_Jan_0(base.tm_year+1900,base.tm_mon+1,base.tm_mday) + base.tm_hour/24.0 + base.tm_min/(24*60.0); 
-		   sun_RA_dec(d,&RAss,&decss,&rss);
-		   EqAz(RAss,decss,base,lon,lat,&azss,&altss);
-		   printf("sun azimuth=%f  altitude=%f\n",azss,altss);
+	   if (arguments.current) {
+		   if (altss>=(arguments.angle - (arguments.rim?rss:0)) ) 
+		     printf("+%s\n",(arguments.verbose >=1)?" up now":"");  
+	           else 
+		     printf("-%s\n",(arguments.verbose >=1)?" down now":"");  
+	           if (arguments.verbose >=2) 
+	           printf("sun azimuth=%f  altitude=%f\n",azss,altss);
 	   }
-
-	
+	 
 	   if (arguments.mid) {
 		   tset = (trise+tset)/2;
 		   gmtime_r(&tset,&tmset);
