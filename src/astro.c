@@ -285,7 +285,7 @@ int __sunrise__( int year, int month, int day, double lon, double lat,
       t,          /* Diurnal arc */
       tsouth,     /* Time when Sun is at south */
       iterd,	  /* reference time this iteration as fraction of day */
-      itertrise,  /* intermediate iteration result */
+      itert,  /* intermediate iteration result */
       sidtime;    /* Local sidereal time */
 
       int rc = 0; /* Return cde from function - usually 0 */
@@ -322,19 +322,19 @@ int __sunrise__( int year, int month, int day, double lon, double lat,
         else
              t = acosd(cost)/15.04107;   /* The diurnal arc, hours */
       
+        /* Store rise and set times - in hours UT */
 	if (PlusMinus <0) {
-	  itertrise = *trise;
+	  itert = *trise;
           *trise = tsouth - t; /* may be negative as well */
 	  iterd = *trise/24.0;
 	} else {
-	  itertrise = *tset;
+	  itert = *tset;
           *tset = tsouth + t; /* may be negative as well */
 	  iterd = *tset/24.0;
 	} 
         itercount +=1; 
-      } while (itercount<3 || fabs(itertrise - (PlusMinus<0?*trise:*tset))>=0.0083 ) ; 
-      /* Store rise and set times - in hours UT */
-      }
+      } while (itercount<3 || fabs(itert - (PlusMinus<0?*trise:*tset))>=0.0083 ) ; // done iteration.
+      } // done rise and set.
       return rc;
 }  /* __sunriset__ */
 
