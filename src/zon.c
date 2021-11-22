@@ -382,10 +382,15 @@ int main(int argc, char **argv)
 	     };
 	     if (rs==0) {
 	              if ( (!validtrise) && (trise>=tbase)  && 
-				      ( yesterdayrs<=0 ) ) validtrise=trise;
+				      ( yesterdayrs<=0 || tomorrowrs >=0 ) ) validtrise=trise;
 	              if ( (!validtset)  && (tset >=tbase)  &&
-				      ( tomorrowrs >=0 ) ) validtset=tset;
+				      ( yesterdayrs>=0 || tomorrowrs <=0 ) ) validtset=tset;
+		      if ( yesterdayrs > 0 && tomorrowrs < 0 ) {validtset=tset;validtrise=0;} /* very rare */
+		      if ( yesterdayrs < 0 && tomorrowrs > 0 ) {validtset=0;validtrise=trise;}
 	     }
+	     /* Not sure if the following two conditions could actually occur */
+	     if ( rs > 0 && tomorrowrs < 0 ) validtset = tset; 
+	     if ( rs < 0 && yesterdayrs > 0 ) validtrise = trise;
 
 	     skipped_days +=1 ; 
            } while  ( ( (!validtrise)|| (!validtset)) && (skipped_days<365)); 
