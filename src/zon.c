@@ -87,7 +87,7 @@ static struct argp_option options[] = {
 /* Used by main to communicate with parse_opt. */
 struct arguments
 {
-  double angle,latitude,longitude;
+  double angle;
   int rise, set, mid, current, verbose, rim;
   char *date, *location, *dateformat;
 };
@@ -182,6 +182,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 static struct argp argp = { options, parse_opt, 0, doc };
 
 
+
+
+
 int main(int argc, char **argv)
 {
       struct arguments arguments;
@@ -200,18 +203,18 @@ int main(int argc, char **argv)
 
 
       double lon=0,lat=0;
-      double tnoon,tarc;
-      double hset,hrise;
-      int    rs;
-      regex_t lregex;
-      size_t lnmatchr=20; // set to 20; too large, but regex might change in future releases.
-      regmatch_t lmatchptr[lnmatchr]; 
+
 // Location on earth is our most important parameter for the calculation:
 // Successively try: CLI-argument, /etc/zon.conf, TZ environment or /etc/timezone (to inspect /usr/share/zoneinfo.zone1970.tab) or set to 0 Norht, 0 West
 // char * getenv (const char *name)
+      regex_t lregex;
+      size_t lnmatchr=20; // set to 20; too large, but regex might change in future releases.
+      regmatch_t lmatchptr[lnmatchr]; 
+
       FILE *fp;
       char *locationstr; locationstr=malloc(sizeof(char)*81);
       char *filename; filename=malloc(sizeof(char)*81);
+
       if (arguments.location==NULL) { 
 	      lon=0; lat=0;
 	      strncpy(filename,getenv("HOME")?getenv("HOME"):"",80);
@@ -290,7 +293,8 @@ int main(int argc, char **argv)
       }; 
       if ( arguments.verbose >= 2  ) printf( "Latitude (+ is north) and Longitude (+ is east) decimal values : %+lf %+lf\n", lat, lon );
 
-// moment in time is our next most important reference for the output: 
+// Moment in time is our next most important reference for the output: 
+//
       time_t tnow,tbase,trise,tset,validtrise,validtset;
       struct tm base,tmrise,tmset;
       char *datestr; datestr=malloc(sizeof(char)*81);
@@ -299,10 +303,10 @@ int main(int argc, char **argv)
       tbase=tnow;
       FILE *datein;
  
-// modify base according tot cli-arguments
+      // modify base according tot cli-arguments
       gmtime_r(&tbase,&base); 
       int zhours,zmin;
-// If the date parameter starts with "date ", then pass it to the date command, to provide a datestring 
+      // If the date parameter starts with "date ", then pass it to the date command, to provide a datestring 
       if (( arguments.date!=NULL) && ( strstr(arguments.date,"date ") == arguments.date))  { 
            strcpy(datestr,"date -Im -d \"");
            strcat(datestr,&arguments.date[5]);
@@ -334,16 +338,29 @@ int main(int argc, char **argv)
               printf( "Local Timezone secs                 %ld\n", timezone);
       }; 
 
+// Print current situation for the sun if requested.
       double RAss,decss,rss,azss,altss,d;
-      d = days_since_2000_Jan_0(base.tm_year+1900,base.tm_mon+1,base.tm_mday) + base.tm_hour/24.0 + base.tm_min/(24*60.0); 
-      sun_RA_dec(d,&RAss,&decss,&rss);
-      EqAz(RAss,decss,base,lon,lat,&azss,&altss);
-      /* Convert distance variable to the Sun's apparent radius in degrees */
-      rss = 0.2666 / rss;
+      if (arguments.current) {
+        d = days_since_2000_Jan_0(base.tm_year+1900,base.tm_mon+1,base.tm_mday) + base.tm_hour/24.0 + base.tm_min/(24*60.0); 
+        sun_RA_dec(d,&RAss,&decss,&rss);
+        EqAz(RAss,decss,base,lon,lat,&azss,&altss);
+        /* Convert distance variable to the Sun's apparent radius in degrees */
+        rss = 0.2666 / rss;
+	if (altss>=(arguments.angle - (arguments.rim?rss:0)) ) 
+		     printf("+%s\n",(arguments.verbose >=1)?" up now":"");  
+	else 
+		     printf("-%s\n",(arguments.verbose >=1)?" down now":"");  
+	if (arguments.verbose >=2) 
+	           printf("sun azimuth=%f  altitude=%f\n",azss,altss);
+      }
 
+// Find out and print sun rise and set data, if requested
+      double hset,hrise;
+      int    rs;
       int skipped_days, yesterdayrs, tomorrowrs;
       time_t ytrise=0, ytset=0, mtrise=0, mtset=0;
-      trise=0; tset=0;
+      if (arguments.rise || arguments.set || arguments.mid) {
+           trise=0; tset=0;
 	   skipped_days=0;
            validtrise=0;
            validtset=0;
@@ -409,15 +426,6 @@ int main(int argc, char **argv)
 		   strftime(datestr,80,arguments.dateformat, &tmset); 
 		   printf("%s%s\n",datestr,(arguments.verbose>=1)?" set":"");
 	   }
-
-	   if (arguments.current) {
-		   if (altss>=(arguments.angle - (arguments.rim?rss:0)) ) 
-		     printf("+%s\n",(arguments.verbose >=1)?" up now":"");  
-	           else 
-		     printf("-%s\n",(arguments.verbose >=1)?" down now":"");  
-	           if (arguments.verbose >=2) 
-	           printf("sun azimuth=%f  altitude=%f\n",azss,altss);
-	   }
 	 
 	   if (arguments.mid) {
 		   tset = (trise+tset)/2;
@@ -425,7 +433,7 @@ int main(int argc, char **argv)
 		   strftime(datestr,80,arguments.dateformat, &tmset); 
 		   printf("%s%s\n",datestr,(arguments.verbose>=1)?" mid":"");
 	   }
-
+      }
       return 0;
 }
 
