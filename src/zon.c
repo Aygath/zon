@@ -106,7 +106,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
     {
     case 0:
 	// sun rise (rim of sun above horizon)
-      arguments->angle = -35.0/60.0; /* compensare atmospheric refraction */
+      arguments->angle = -35.0/60.0; /* compensate atmospheric refraction */
       arguments->rim =1; /* compensate radius of solar disk */
       break;
     case 1:
@@ -217,6 +217,7 @@ int main(int argc, char **argv)
 
       if (arguments.location==NULL) { 
 	      lon=0; lat=0;
+	      // Try to read location from config files:
 	      strncpy(filename,getenv("HOME")?getenv("HOME"):"",80);
 	      strncat(filename,"/.config/zon.conf",80);
 	      fp=fopen(filename,"r");
@@ -233,7 +234,7 @@ int main(int argc, char **argv)
 	             fclose(fp);
 		     }
 	      } else {
-		      // try to grep TZ from zone1970.tab
+		      // try to read location from zone1970.tab by TimeZone name, if location not found in config files:
 		      // Search for TZ in environment and /etc/timezone
 		      char *TZ;
 		      TZ=getenv("TZ"); if ( TZ!=NULL && arguments.verbose >= 2 ) printf("TZ found as environment variable: %s\n",TZ);
@@ -269,6 +270,7 @@ int main(int argc, char **argv)
 		      }
 	      }
       } 
+      // parse location coordinates:
       if (arguments.location!=NULL) { 
 	 if (arguments.verbose >= 2) printf("Location str (should be +DDMM[SS]+DDDMM[SS]): %s  len %lu \n",arguments.location,strlen(arguments.location)); 
 	 // regexec(&lregex, arguments.location, lnmatchr, lmatchptr, 0);
@@ -298,7 +300,7 @@ int main(int argc, char **argv)
       time_t tnow,tbase,trise,tset,validtrise,validtset;
       struct tm base,tmrise,tmset;
       char *datestr; datestr=malloc(sizeof(char)*81);
-
+      // take systemtime by default:
       time(&tnow);
       tbase=tnow;
       FILE *datein;
@@ -320,6 +322,7 @@ int main(int argc, char **argv)
            if ( arguments.verbose  >= 2 )
                    printf("date output: %s\n",arguments.date ); 
       }
+      // parse the datestring:
       if ( arguments.date!=NULL) { 
 	 if (strlen(arguments.date)==22) 
 	   sscanf(arguments.date, "%4d-%2d-%2dT%2d:%2d%3d:%2d", &base.tm_year, &base.tm_mon, &base.tm_mday, &base.tm_hour, &base.tm_min, &zhours, &zmin);  
@@ -331,14 +334,14 @@ int main(int argc, char **argv)
          tbase = timegm(&base); 
          gmtime_r(&tbase,&base); 
       }; 
-
+      // print the resulting date
       if ( arguments.verbose  >= 2 ) {
 	      printf( "system time using local time zone   %s", ctime(&tnow));
               printf( "base time in local time zone        %s", ctime(&tbase));
               printf( "Local Timezone secs                 %ld\n", timezone);
       }; 
 
-// Print current situation for the sun if requested.
+// find out and print current situation for the sun, if requested.
       double RAss,decss,rss,azss,altss,d;
       if (arguments.current) {
         d = days_since_2000_Jan_0(base.tm_year+1900,base.tm_mon+1,base.tm_mday) + base.tm_hour/24.0 + base.tm_min/(24*60.0); 
@@ -354,7 +357,7 @@ int main(int argc, char **argv)
 	           printf("sun azimuth=%f  altitude=%f\n",azss,altss);
       }
 
-// Find out and print sun rise and set data, if requested
+// Find out and print sun rise and set data, if requested.
       double hset,hrise;
       int    rs;
       int skipped_days, yesterdayrs, tomorrowrs;
@@ -364,6 +367,7 @@ int main(int argc, char **argv)
 	   skipped_days=0;
            validtrise=0;
            validtset=0;
+	   // repeat the calculation until we have valid rise and set data:
            do {
              // For our decisions we need data for yesterday, today and tomorrow. Calculate tomorrows data always and first time calculate the three dates 
 	     do {
@@ -394,14 +398,14 @@ int main(int argc, char **argv)
 	     if (skipped_days==0 && arguments.verbose >= 2) {
 	               if ( rs>0 ) printf("++ up entire solar day %i\n",rs);
 	               if ( rs<0 ) printf("-- down entire solar day %i\n",rs);
-	               if ( rs==0 ) printf(" Day with a sun set and/or rise event. RS %i\n",rs);
+	               if ( rs==0 ) printf("Day with a sun set and/or rise event. RS %i\n",rs);
 	               printf("RS yesterday=%i, tomorrow=%i)\n",yesterdayrs,tomorrowrs);
 	     };
 	     if (rs==0) {
 	              if ( (!validtrise) && (trise>=tbase)  && 
-				      ( yesterdayrs<=0 || tomorrowrs >=0 ) ) validtrise=trise;
+				      !( yesterdayrs>0  ) ) validtrise=trise; // do not take risetime after midnight sun period
 	              if ( (!validtset)  && (tset >=tbase)  &&
-				      ( yesterdayrs>=0 || tomorrowrs <=0 ) ) validtset=tset;
+				      !( tomorrowrs>0  ) ) validtset=tset; // do not take set time before midnight sun periodi
 		      if ( yesterdayrs > 0 && tomorrowrs < 0 ) {validtset=tset;validtrise=0;} /* very rare */
 		      if ( yesterdayrs < 0 && tomorrowrs > 0 ) {validtset=0;validtrise=trise;}
 	     }
@@ -411,10 +415,10 @@ int main(int argc, char **argv)
 
 	     skipped_days +=1 ; 
            } while  ( ( (!validtrise)|| (!validtset)) && (skipped_days<365)); 
-
            tset=validtset;
 	   trise=validtrise;
 	   
+           // process and print the results of the rise/set calculation:
 	   if (arguments.rise) {
 		   gmtime_r(&trise,&tmrise) ;
 		   strftime(datestr,80,arguments.dateformat, &tmrise);
