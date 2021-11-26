@@ -825,7 +825,7 @@ uninstall-man: uninstall-man1
 .PRECIOUS: Makefile
 
 zon.1: README zon
-	-$(HELP2MAN) --no-info -i README -o zon.1 -n "zon [Options...] -- scriptable time output about sun rise and set in UTC" ./zon ; rm ./zon.1.gz ; gzip --best -n ./zon.1
+	-$(HELP2MAN) --no-info -i README -o zon.1 -n "zon [Options...] -- scriptable time output about sun rise and set in UTC" ./zon 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
