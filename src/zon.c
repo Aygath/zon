@@ -27,6 +27,7 @@ Released to the public domain by Paul Schlyter, December 1992
 
 */
 
+#include <error.h>
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
@@ -61,7 +62,7 @@ static struct argp_option options[] =
     {"mid",      'm', 0,      0,  "Produce time exactly between the next rise and set times, i.e. deep midnight or high noon" },
     {"current",  'c', 0,      0,  "Whether sun is up \"+\" or down \"-\". Default if no display type selected." },
     {0,0,0,0, "Options to specify when and where on earth" },
-    {"location", 'l', "+DDMM+DDDMM", 0,  "or +DDMMSS+DDDMMSS Calculate for latitude (+N/-S) and longitude (+E-W) in Degrees, Minutes and Seconds. Overrides configuration files /etc/zon.conf and ~/.config/zon.conf" },
+    {"location", 'l', "+DDMM+DDDMM", 0,  "or +DDMMSS+DDDMMSS or degrees,degrees (with N,S,+ or - sings) Calculate for latitude (+N/-S) and longitude (+E-W) in Degrees, Minutes and Seconds. Overrides configuration files /etc/zon.conf and ~/.config/zon.conf" },
     {"date",     'd', "iso-time", 0,  "YYYY-MM-DDTHH:MM+ZZ[:]zz Calculate for specified iso-formatted time. Defaults to current system time. Specify \"date <date syntax>\" to parse by invoking the date command" },
     {0,0,0,0, "Options to format the output. Defaults to iso-format" },
     {"at",       '@', 0,      0,  "Format output as date usable by the at command (in UTC), HH:MM YYYY-MM-DD" },
@@ -70,7 +71,7 @@ static struct argp_option options[] =
     {0,0,0,0, "" },
     {"verbose",  'v', 0,      0,  "Produce a label or if repeated give all base and calculated data, including date and location" },
     {0,0,0,0, "Options to select the kind of twighlight" },
-    {"sun",       0,  0,      0,  "Default: Produce start, ending and duration of visibility of top of sun above horizon, i.e. sunrise and sunset. Both atmospheric refraction (-35/60 degree) and the apparent size of the solar disk are accounted for." },
+    {"sun",       0,  0,      0,  "Default: Produce start, ending and duration of visibility of top of sun above horizon, i.e. sunrise and sunset. Both atmospheric refraction (-35/60 degree) and rim of the apparent size of the solar disk are accounted for." },
     {0,0,0,0, "" },
     {"civil",     1,  0,      0,  "Produce data about civil twighlight, starting when centre of sun is 6 degrees below horizon" },
     {0,0,0,0, "" },
@@ -78,7 +79,7 @@ static struct argp_option options[] =
     {0,0,0,0, "" },
     {"astronomical",3,0,      0,  "Produce data about astronomical twighlight, starting when centre of sun is 18 degrees below horizon" },
     {0,0,0,0, "" },
-    {"angle"     ,5,  "degrees",      0,  "Specify your own rise/set angle of the centre of the sun below horizon" },
+    {"angle"     ,5,  "degrees",      0,  "Specify your own rise/set angle of the centre of the sun to the horizon" },
     {"rim"       ,4,  0,      0,  "Specify to compensate angle for the upper rim of the sun (i.e. the radius of the apparent solar disk). Like at sun rise/set. Use after --angle" },
     { 0 }
 };
@@ -91,7 +92,7 @@ struct arguments
     char *date, *location, *dateformat;
 };
 
-char *locationRE="^((([NS-]?)([0-9]+(\\.[0-9]+)?)([NZ]?),([EW-]?)([0-9]+(\\.[0-9]+)?)([EW]?))|(((\\+|-)[0-9]{4}([0-9]{2})?)((\\+|-)[0-9]{5}([0-9]{2})?)))$";
+char *locationRE="^((([NS-]?)([0-9]+(\\.[0-9]+)?)([NS]?), ?([EW-]?)([0-9]+(\\.[0-9]+)?)([EW]?))|(((\\+|-)[0-9]{4}([0-9]{2})?)((\\+|-)[0-9]{5}([0-9]{2})?)))$";
 /* Parse a single option. */
 static error_t
 parse_opt (int key, char *arg, struct argp_state *state)
@@ -268,26 +269,28 @@ int main(int argc, char **argv)
     }
     // parse location coordinates:
     if (arguments.location!=NULL) {
-        if (arguments.verbose >= 2) printf("Location str (should be +DDMM[SS]+DDDMM[SS]): %s  len %lu \n",arguments.location,strlen(arguments.location));
-        // regexec(&lregex, arguments.location, lnmatchr, lmatchptr, 0);
-        // if (lmatchptr[2].rm_so>0) {
-        if (1==0) {
+        if (arguments.verbose >= 2) printf("Location string used: %s  len %lu \n",arguments.location,strlen(arguments.location));
+            if ( 0 != regcomp(&lregex, locationRE , REG_EXTENDED )) exit(SIGABRT); 
+            regexec(&lregex, arguments.location, lnmatchr, lmatchptr, 0);
+        if (lmatchptr[2].rm_so>=0) {
             sscanf(&arguments.location[lmatchptr[4].rm_so],"%lf",&lat);
             sscanf(&arguments.location[lmatchptr[8].rm_so],"%lf",&lon);
-            // 3 en 6 zijn latitude; 7 en 10 zijn longitude;
+            // 3 and 6 are latitude; 7 and 10 are longitude;
             if (arguments.location[lmatchptr[3].rm_so]=='S' || arguments.location[lmatchptr[3].rm_so]=='-' || arguments.location[lmatchptr[6].rm_so]=='S') lat *= -1;
-            if (arguments.location[lmatchptr[7].rm_so]=='E' || arguments.location[lmatchptr[7].rm_so]=='-' || arguments.location[lmatchptr[10].rm_so]=='E')lon *= -1;
-        }
-        if ( strlen(arguments.location)==11 ) {
-            sscanf(arguments.location, "%5lf%6lf", &lat, &lon);
-            lat = ((int) lat / 100) + (double)((int) lat % 100)/60 ;
-            lon = ((int) lon / 100) + (double)((int) lon % 100)/60 ;
-        }
-        if ( strlen(arguments.location)==15 ) {
-            sscanf(arguments.location, "%7lf%8lf", &lat, &lon);
-            lat = ((int)lat / 10000) + (double)((int)lat / 100 % 100)/60 + (double)((int)lat % 100)/3600 ;
-            lon = ((int)lon / 10000) + (double)((int)lon / 100 % 100)/60 + (double)((int)lon % 100)/3600 ;
-        }
+            if (arguments.location[lmatchptr[7].rm_so]=='W' || arguments.location[lmatchptr[7].rm_so]=='-' || arguments.location[lmatchptr[10].rm_so]=='W')lon *= -1;
+        } else if (lmatchptr[11].rm_so>=0) {
+            if ( lmatchptr[14].rm_so<0 && lmatchptr[17].rm_so<0 ) {
+	        sscanf(arguments.location, "%5lf%6lf", &lat, &lon);
+		lat = ((int) lat / 100) + (double)((int) lat % 100)/60 ;
+		lon = ((int) lon / 100) + (double)((int) lon % 100)/60 ;
+	    } 
+	    else if ( lmatchptr[14].rm_so>=0 && lmatchptr[17].rm_so>=0 ) {
+		sscanf(arguments.location, "%7lf%8lf", &lat, &lon);
+		lat = ((int)lat / 10000) + (double)((int)lat / 100 % 100)/60 + (double)((int)lat % 100)/3600 ;
+		lon = ((int)lon / 10000) + (double)((int)lon / 100 % 100)/60 + (double)((int)lon % 100)/3600 ;
+	    } 
+	    else error(EINVAL,EINVAL,"location [SS] missing");
+	} 
     };
     if ( arguments.verbose >= 2  ) printf( "Latitude (+ is north) and Longitude (+ is east) decimal values : %+lf %+lf\n", lat, lon );
 
