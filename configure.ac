@@ -1,4 +1,4 @@
-AC_INIT([zon], [1.1.2alfa], [https://github.com/Aygath/zon])
+AC_INIT([zon], [1.1.2beta], [https://github.com/Aygath/zon])
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_PROG_CC
 AC_CHECK_LIB([m],[cos])
