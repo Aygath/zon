@@ -123,46 +123,46 @@ Print program version
 Mandatory or optional arguments to long options are also mandatory or optional
 for any corresponding short options.
 .SH FILES
-/$HOME/.config/zon.conf 
+ /$HOME/.config/zon.conf 
 
-/etc/zon.conf
+ /etc/zon.conf
 
 first line should contain default latitude en longitude +DDMM[SS]+DDDMM[SS] exactly as below without spaces:
  
-location=+501010+0113030 OR 
-location=+5010+01130
+ location=+501010+0113030 OR 
+ location=+5010+01130
 .SH EXAMPLES
-Example to schedule a job at sun rise with the at command:
-export risetime=$(./zon -r@) ; 
-echo myscheduledjob.sh | TZ=UTC at $risetime ; 
-echo "The job is scheduled for UTC $risetime"
+ Example to schedule a job at sun rise with the at command:
+ export risetime=$(./zon -r@) ; 
+ echo myscheduledjob.sh | TZ=UTC at $risetime ; 
+ echo "The job is scheduled for UTC $risetime"
 
-export risetime=$(./zon -r)
-echo myscheduledjob.sh | TZ=UTC at $(date -d $risetime "+%H:%M %Y-%m-%d")  ; 
-echo "The job is scheduled for local time $(date -d $risetime) 
+ export risetime=$(./zon -r)
+ echo myscheduledjob.sh | TZ=UTC at $(date -d $risetime "+%H:%M %Y-%m-%d")  ; 
+ echo "The job is scheduled for local time $(date -d $risetime) 
 
 Example for systemd-run command:
-export risetime=$(./zon -ry);
-systemd-run --on-calendar="$risetime" myscheduledjob.sh;
-echo "The job is scheduled for $risetime"
+ export risetime=$(./zon -ry);
+ systemd-run --on-calendar="$risetime" myscheduledjob.sh;
+ echo "The job is scheduled for $risetime"
 
 systemd-run --on-calendar="$(zon --rise --systemd)" touch /tmp/sunrise.time
 
 systemd-run --on-calendar="$(zon -ry)" touch /tmp/sunrise.time
 
 Example to give sunrise time somewhere else in a certain timezone, on a future date after DST switch:
-zon$ TZ=CET date -d $( zon -rd $(date -Im -d "now + 5 month") -l +490800+1851356 );
+ zon$ TZ=CET date -d $( zon -rd $(date -Im -d "now + 5 month") -l +490800+1851356 );
 Sun Aug 15 18:26:00 CEST 2021
 
 
 HOW TO BUILD: 
 This requires the 'autotools' toolchain. With this prequisite fulfilled you can build from source tar-ball with:
-mkdir workdir ;
-tar -xvf source-ball.tar
-autoreconf --install # run this command only if ./configure complains about configure.in) ;
-./configure ;
-make ; 
-make install ; 
+ mkdir workdir ;
+ tar -xvf source-ball.tar
+ autoreconf --install # run this command only if ./configure complains about configure.in) ;
+ ./configure ;
+ make ; 
+ make install ; 
 .SH AUTHOR
 Written by Michael Welter, 2021
 .SH "REPORTING BUGS"
