@@ -92,7 +92,7 @@ struct arguments
     char *date, *location, *dateformat;
 };
 
-char *locationRE="^((([NS-]?)([0-9]+(\\.[0-9]+)?)([NS]?), ?([EW-]?)([0-9]+(\\.[0-9]+)?)([EW]?))|(((\\+|-)[0-9]{4}([0-9]{2})?)((\\+|-)[0-9]{5}([0-9]{2})?)))$";
+char *locationRE="^((([NS+-]?)([0-9]+(\\.[0-9]+)?)([NS]?), ?([EW+-]?)([0-9]+(\\.[0-9]+)?)([EW]?))|(((\\+|-)[0-9]{4}([0-9]{2})?)((\\+|-)[0-9]{5}([0-9]{2})?)))$";
 /* Parse a single option. */
 static error_t
 parse_opt (int key, char *arg, struct argp_state *state)

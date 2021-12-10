@@ -1,3 +1,8 @@
+zon v1.2.1alfa
+
+  * packaging: autotools configuration
+    created a src directory to include zon/doc files and DEBIAN/control
+
 zon v1.2
 
   * Enhancements:
