@@ -1,5 +1,6 @@
 bin_PROGRAMS = zon
 
+AM_CFLAGS = -DSYSCONFDIR=\"$(sysconfdir)\"
 zon_SOURCES = src/zon.c
 EXTRA_DIST = src/astro.c src/DEBIAN/control 
 # EXTRA_DIST = src/astro.c src/doc/examples/boot-zon-op.service src/doc/examples/zon-op src/doc/changelog src/doc/copyright /src/DEBIAN/control

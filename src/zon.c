@@ -44,6 +44,7 @@ PACKAGE_STRING ;
 const char *argp_program_bug_address =
 PACKAGE_BUGREPORT ;
 // e.g. from configure PACKAGE_BUGREPORT='https://github.com/Aygath/zon'
+const char *sysconfdir = SYSCONFDIR ; 
 
 /* Program documentation. */
 static char doc[] =
@@ -218,7 +219,8 @@ int main(int argc, char **argv)
         strncat(filename,"/.config/zon.conf",80);
         fp=fopen(filename,"r");
         if  (! fp) {
-            strncpy(filename,"/etc/zon.conf",80);
+            strncpy(filename,sysconfdir,80);
+            strncat(filename,"/zon.conf",80);
             fp=fopen(filename,"r");
         };
         if (fp) {
@@ -309,9 +311,9 @@ int main(int argc, char **argv)
     int zhours,zmin;
     // If the date parameter starts with "date ", then pass it to the date command, to provide a datestring
     if (( arguments.date!=NULL) && ( strstr(arguments.date,"date ") == arguments.date)) {
-        strcpy(datestr,"date -Im -d \"");
+        strcpy(datestr,"date -Im -d '");
         strcat(datestr,&arguments.date[5]);
-        strcat(datestr,"\"");
+        strcat(datestr,"'");
         if ( arguments.verbose  >= 2 )
             printf("running date command: %s\n",datestr );
         if ( ( (datein=popen(datestr,"r")) != NULL ) &&

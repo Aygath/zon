@@ -61,7 +61,7 @@ double revolution( double x );
 double rev180( double x );
 double GMST0( double d );
 void moonpos( double d, double *lon, double *lat, double *r );
-void mon_RA_dec( double d, double *RA, double *dec, double *r );
+void moon_RA_dec( double d, double *RA, double *dec, double *r );
 int __sunrise__(int year, int month,int day, double lon, double lat, double altit, int upper_limb, double *trise, double *tset);
 
 /* The "workhorse" function for sun rise/set times */
@@ -314,6 +314,76 @@ void sun_RA_dec( double d, double *RA, double *dec, double *r )
 
 }                                /* sun_RA_dec */
 
+int __moonrise__( int year, int month, int day, double lon, double lat,
+double altit, int upper_limb, double *trise, double *tset )
+{
+    int itercount=0,PlusMinus;   /* number of iterations */
+    double  d,                   /* Days since 2000 Jan 0.0 (negative before) */
+        sr,                      /* Solar distance, astronomical units */
+        sRA,                     /* Moon's Right Ascension */
+        sdec,                    /* Moon's declination */
+        sradius,                 /* Moon's apparent radius */
+        saltitude,               /* MW: saved input altitude */
+        t,                       /* Diurnal arc of the moon day */
+        tsouth,                  /* Time when Moon is at highest */
+        iterd,                   /* reference time this iteration as fraction of day */
+        itert,                   /* intermediate iteration result */
+        sidtime;                 /* Local sidereal time */
+
+    int rc = 0;                  /* Return cde from function - usually 0 */
+    for (PlusMinus=-1;PlusMinus<=1;PlusMinus +=2) {
+        /* Compute d of 12h local mean solar time */
+        iterd = 12.0 / 24.0;
+        do {
+            d = days_since_2000_Jan_0(year,month,day) + iterd - lon/360.0;
+
+            /* Compute the local sidereal time of this moment */
+            sidtime = revolution( GMST0(d) + 180.0 + lon );
+
+            /* Compute Moon's RA, Decl and distance at this moment */
+            moon_RA_dec( d, &sRA, &sdec, &sr );
+
+            /* Compute time when Moon is at highest - in hours UT */
+            tsouth = 12.0 - rev180(sidtime - sRA)/15.0 ;
+
+            /* Compute the Sun's apparent radius in degrees */
+            sradius = 0.2666 / sr; printf("FOUTE RADIUS!!!!\n");
+
+            /* Compute the diurnal arc that the Sun traverses to reach */
+            /* the specified altitude altit: */
+            /* Do correction to upper limb, if necessary */
+
+            double cost;
+            cost = ( sind(altit - (( upper_limb )?sradius:0)) - sind(lat) * sind(sdec) ) /
+                ( cosd(lat) * cosd(sdec) );
+            if ( cost >= 1.0 )
+                rc = -1, t = 0.0;/* Moon always below altit */
+            else if ( cost <= -1.0 )
+                                 /* Moon always above altit */
+                    rc = +1, t = 12.0;
+            else
+                                 /* The diurnal arc, hours */
+                t = acosd(cost)/15.04107;
+
+            /* Store rise and set times - in hours UT */
+            if (PlusMinus <0) {
+                itert = *trise;
+                                 /* may be negative as well */
+                *trise = tsouth - t;
+                iterd = *trise/24.0;
+            }
+            else {
+                itert = *tset;
+                                 /* may be negative as well */
+                *tset = tsouth + t;
+                iterd = *tset/24.0;
+            }
+            itercount +=1;
+                                 // done iteration.
+        } while (itercount<3 || fabs(itert - (PlusMinus<0?*trise:*tset))>=0.04 ) ; // 0.0083=30 seconds
+    }                            // done rise and set.
+    return rc;
+}                                /* __sunriset__ */
 
 void moonpos( double d, double *lon, double *lat, double *r )
 /******************************************************/
