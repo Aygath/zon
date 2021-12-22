@@ -1,4 +1,6 @@
-// zon.c
+// astro.c
+// Copyright Michael Welter
+// This file is licensed under GPL 2.0, 2021
 // Last modified march 2021
 // This program will print the date/time of the next sunrise and/or sunset in a format that
 // is convenient for scripting and scheduling with e.g. the at command and the systemd command.
@@ -319,10 +321,10 @@ double altit, int upper_limb, double *trise, double *tset )
 {
     int itercount=0,PlusMinus;   /* number of iterations */
     double  d,                   /* Days since 2000 Jan 0.0 (negative before) */
-        sr,                      /* Solar distance, astronomical units */
-        sRA,                     /* Moon's Right Ascension */
-        sdec,                    /* Moon's declination */
-        sradius,                 /* Moon's apparent radius */
+        mr,                      /* Moon distance, astronomical units */
+        mRA,                     /* Moon's Right Ascension */
+        mdec,                    /* Moon's declination */
+        mradius,                 /* Moon's apparent radius */
         saltitude,               /* MW: saved input altitude */
         t,                       /* Diurnal arc of the moon day */
         tsouth,                  /* Time when Moon is at highest */
@@ -341,21 +343,22 @@ double altit, int upper_limb, double *trise, double *tset )
             sidtime = revolution( GMST0(d) + 180.0 + lon );
 
             /* Compute Moon's RA, Decl and distance at this moment */
-            moon_RA_dec( d, &sRA, &sdec, &sr );
+            moon_RA_dec( d, &mRA, &mdec, &mr );
 
             /* Compute time when Moon is at highest - in hours UT */
-            tsouth = 12.0 - rev180(sidtime - sRA)/15.0 ;
+            tsouth = 12.0 - rev180(sidtime - mRA)/15.0 ;
 
             /* Compute the Sun's apparent radius in degrees */
-            sradius = 0.2666 / sr; printf("FOUTE RADIUS!!!!\n");
+            // sradius = 0.2666 / sr; printf("FOUTE RADIUS!!!!\n");
+            mradius = 0.0    / mr; printf("FOUTE RADIUS!!!!\n");
 
-            /* Compute the diurnal arc that the Sun traverses to reach */
+            /* Compute the diurnal arc that the Moon traverses to reach */
             /* the specified altitude altit: */
             /* Do correction to upper limb, if necessary */
 
             double cost;
-            cost = ( sind(altit - (( upper_limb )?sradius:0)) - sind(lat) * sind(sdec) ) /
-                ( cosd(lat) * cosd(sdec) );
+            cost = ( sind(altit - (( upper_limb )?mradius:0)) - sind(lat) * sind(mdec) ) /
+                ( cosd(lat) * cosd(mdec) );
             if ( cost >= 1.0 )
                 rc = -1, t = 0.0;/* Moon always below altit */
             else if ( cost <= -1.0 )

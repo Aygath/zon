@@ -1,4 +1,6 @@
 // zon.c
+// Copyright Michael Welter 2021
+// This file is licensed under GPL 2.0
 // Last modified march 2021
 // This program will print the date/time of the next sunrise and/or sunset in a format that
 // is convenient for scripting and scheduling with e.g. the at command and the systemd command.
@@ -228,7 +230,7 @@ int main(int argc, char **argv)
                 locationstr[strlen(locationstr)-1]='\0';
                 // skipt "location=" part:
                 arguments.location=&locationstr[9];
-                if (arguments.verbose >=2 ) printf("Location str from file %s (should be +DDMM[SS]+DDDMM[SS]): %s  len %lu \n",filename,arguments.location,strlen(arguments.location));
+                if (arguments.verbose >=2 ) printf("Location str from file %s (should be +DDMM[SS]+DDDMM[SS]): %s  len %lu \n",filename,arguments.location,(unsigned long) strlen(arguments.location));
                 fclose(fp);
             }
         }
@@ -271,7 +273,7 @@ int main(int argc, char **argv)
     }
     // parse location coordinates:
     if (arguments.location!=NULL) {
-        if (arguments.verbose >= 2) printf("Location string used: %s  len %lu \n",arguments.location,strlen(arguments.location));
+        if (arguments.verbose >= 2) printf("Location string used: %s  len %lu \n",arguments.location,(unsigned long) strlen(arguments.location));
             if ( 0 != regcomp(&lregex, locationRE , REG_EXTENDED )) exit(SIGABRT); 
             regexec(&lregex, arguments.location, lnmatchr, lmatchptr, 0);
         if (lmatchptr[2].rm_so>=0) {
@@ -356,6 +358,11 @@ int main(int argc, char **argv)
             printf("-%s\n",(arguments.verbose >=1)?" down now":"");
         if (arguments.verbose >=2)
             printf("sun azimuth=%f  altitude=%f\n",azss,altss);
+        if (arguments.verbose >=2) {
+            moon_RA_dec(d,&RAss,&decss,&rss);
+            EqAz(RAss,decss,base,lon,lat,&azss,&altss);
+            printf("moon azimuth=%f  altitude=%f\n",azss,altss);
+	}
     }
 
     // Find out and print sun rise and set data, if requested.
