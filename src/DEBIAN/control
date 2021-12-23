@@ -1,9 +1,0 @@
-Package: zon
-Depends: libc6 
-Priority: optional
-Section: contrib/admin
-Version: 1.2.1alfa
-Architecture: amd64
-Maintainer: Michael Welter <aygath@github.com>
-Description: prints future or past sun rise and set times
- Aid to scheduling of jobs relative to any sun rise or set event

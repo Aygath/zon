@@ -22,7 +22,7 @@ The '-v' option will add a descriptive label. A repeat of this option will print
 Please note: It would be straightforward to include the current local timezone in the output, however i.m.o. this makes no sense because the timezone is subject to future daylight saving time changes rendering the printed time unreliable for scheduling. The 'date' command can handle the changing timezones appropiately if required.
 
 [EXAMPLES]
- Example to schedule a job at sun rise with the at command:
+Example to schedule a job at sun rise with the at command:
  export risetime=$(./zon -r@) ; 
  echo myscheduledjob.sh | TZ=UTC at $risetime ; 
  echo "The job is scheduled for UTC $risetime"
@@ -42,7 +42,7 @@ systemd-run --on-calendar="$(zon -ry)" touch /tmp/sunrise.time
 
 Example to give sunrise time somewhere else in a certain timezone, on a future date after DST switch:
  zon$ TZ=CET date -d $( zon -rd $(date -Im -d "now + 5 month") -l +490800+1851356 );
-Sun Aug 15 18:26:00 CEST 2021
+ Sun Aug 15 18:26:00 CEST 2021
 
 
 HOW TO BUILD: 
