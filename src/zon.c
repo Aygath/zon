@@ -199,6 +199,7 @@ int main(int argc, char **argv)
     arguments.location=NULL;
     arguments.dateformat="%Y-%m-%dT%H:%M+00:00";
     argp_parse (&argp, argc, argv, 0, 0, &arguments);
+//# if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid ) ) printf(" default controle\n");
     if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid ) ) arguments.current=1;
 
     double lon=0,lat=0;
@@ -352,10 +353,6 @@ int main(int argc, char **argv)
         EqAz(RAss,decss,base,lon,lat,&azss,&altss);
         /* Convert distance variable to the Sun's apparent radius in degrees */
         rss = 0.2666 / rss;
-        if (altss>=(arguments.angle - (arguments.rim?rss:0)) )
-            printf("+%s\n",(arguments.verbose >=1)?" up now":"");
-        else
-            printf("-%s\n",(arguments.verbose >=1)?" down now":"");
         if (arguments.verbose >=2)
             printf("sun azimuth=%f  altitude=%f\n",azss,altss);
         if (arguments.verbose >=2) {
@@ -370,7 +367,7 @@ int main(int argc, char **argv)
     int    rs;
     int skipped_days, yesterdayrs, tomorrowrs;
     time_t ytrise=0, ytset=0, mtrise=0, mtset=0;
-    if (arguments.rise || arguments.set || arguments.mid) {
+    if (arguments.current || arguments.rise || arguments.set || arguments.mid) {
         trise=0; tset=0;
         skipped_days=0;
         validtrise=0;
@@ -444,6 +441,12 @@ int main(int argc, char **argv)
             strftime(datestr,80,arguments.dateformat, &tmset);
             printf("%s%s\n",datestr,(arguments.verbose>=1)?" set":"");
         }
+        if (arguments.current) {
+	    if ( tset < trise )
+                printf("+%s\n",(arguments.verbose >=1)?" up now":"");
+            else
+                printf("-%s\n",(arguments.verbose >=1)?" down now":"");
+	}
 
         if (arguments.mid) {
             tset = (trise+tset)/2;
