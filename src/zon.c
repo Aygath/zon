@@ -1,33 +1,38 @@
-// zon.c
-// Copyright Michael Welter 2021
-// This file is licensed under GPL 2.0
-// Last modified march 2021
+/*  Print timestamp for sun rise and set
+   Copyright (C) 2022 Copyright Michael Welter
+
+This file is part "zon"
+
+zon is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+GNU Wget is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Wget.  If not, see <http://www.gnu.org/licenses/>.
+
+Additional permission under GNU GPL version 3 section 7
+
+If you modify this program, or any covered work, by linking or
+combining it with the OpenSSL project's OpenSSL library (or a
+modified version of that library), containing parts covered by the
+terms of the OpenSSL or SSLeay licenses, the Free Software Foundation
+grants you additional permission to convey the resulting work.
+Corresponding Source for a non-source form of such a combination
+shall include the source code for the parts of OpenSSL used as well
+as that of the covered work.  */
+
 // This program will print the date/time of the next sunrise and/or sunset in a format that
 // is convenient for scripting and scheduling with e.g. the at command and the systemd command.
 // Example echo myjob.sh | TZ=UTC at $(zon -@t)
 // Example echo Next sunrise in UTC will be at $(zon -r)
 // Example echo Next sunrise in in local time will be at $(date -d $(zon -r) )
 //
-// The actual calculations are copied from the programs SUNRISET.C written by
-// Paul Schlyter and released to the public domain in december 1992. See comment below.
-//
-/* +++Date last modified: 05-Jul-1997 */
-/* Updated comments, 05-Aug-2013 */
-
-/*
-
-SUNRISET.C - computes Sun rise/set times, start/end of twilight, and
-             the length of the day at any date and latitude
-
-Written as DAYLEN.C, 1989-08-16
-
-Modified to SUNRISET.C, 1992-12-01
-
-(c) Paul Schlyter, 1989, 1992
-
-Released to the public domain by Paul Schlyter, December 1992
-
-*/
 
 #include <error.h>
 #include <stdio.h>
