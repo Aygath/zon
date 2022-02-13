@@ -1,0 +1,67 @@
+name: Makefile CI
+
+on:
+  push:
+    branches: [  main  ]
+  pull_request:
+    branches: [  main  ]
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+    # runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: install help2man devscripts debmake debhelper gcc-arm*
+      run: sudo apt-get --quiet -y install help2man devscripts debmake debhelper gcc-aarch64-linux-gnu gcc-arm*
+    
+    - name: configure
+      run: ./configure
+      
+    - name: make
+      run: make
+      
+    - name: make check
+      run: make check
+      
+    - name: make distcheck
+      run: make distcheck;
+           echo "PNAME=""$( grep 'define PACKAGE_NAME ' config.log | cut -d\" -f 2 | tr -d '\n')" >> $GITHUB_ENV ; 
+           echo "PVERSION=""$( grep 'define PACKAGE_VERSION ' config.log | cut -d\" -f 2 | tr -d '\n')" >> $GITHUB_ENV ; 
+
+    - name: Run debmake & debuild for amd64, armel and armhf
+      run: mkdir debmake ;
+           cd debmake ;
+           debmake -a ../${{ env.PNAME }}-${{ env.PVERSION}}.tar.gz;
+           cd ${{ env.PNAME }}-${{ env.PVERSION}} ;
+           debuild -i -uc -us ; 
+           
+    - name: armel debuild
+      run: sudo sh -c "echo /usr/arm-linux-gnueabihf/libsf > /etc/ld.so.conf.d/cross.conf" ;
+           cd debmake/${{ env.PNAME }}-${{ env.PVERSION}} ;
+           debuild -i -uc -us -aarmel;
+           
+    - name: armhf debuild
+      run: sudo sh -c "echo /usr/arm-linux-gnueabihf/lib >/etc/ld.so.conf.d/cross.conf" ;
+           cd debmake/${{ env.PNAME }}-${{ env.PVERSION}} ;      
+           debuild -i -uc -us -aarmhf;
+           
+    - name: arm64 debuild
+      run: sudo sh -c "echo /usr/aarch64-linux-gnu/lib > /etc/ld.so.conf.d/cross.conf" ;
+           cd debmake/${{ env.PNAME }}-${{ env.PVERSION}} ;
+           debuild -i -uc -us -aarm64;
+   
+    - name: Upload .deb packages
+      uses: actions/upload-artifact@v2
+      with:
+        name: zon_version_arch
+        path: |
+          ${{ github.workspace }}/debmake/${{ env.PNAME }}_${{ env.PVERSION}}*.deb
+          ${{ github.workspace }}/debmake/${{ env.PNAME }}_${{ env.PVERSION}}*.dsc
+          ${{ github.workspace }}/debmake/${{ env.PNAME }}_${{ env.PVERSION}}.orig.tar.gz
+          ${{ github.workspace }}/debmake/${{ env.PNAME }}_${{ env.PVERSION}}*.debian.tar.xz
+          ${{ github.workspace }}/debmake/${{ env.PNAME }}_${{ env.PVERSION}}*.diff.gz
+          ${{ github.workspace }}/debmake/${{ env.PNAME }}-${{ env.PVERSION}}*.tar.gz
