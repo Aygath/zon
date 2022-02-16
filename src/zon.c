@@ -123,7 +123,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
             arguments->mid = 1;
             break;
         case '@':
-            arguments->dateformat = "%H:%M %Y-%m-%d";
+            arguments->dateformat = "%H:%M %Y-%m-%d utc";
             break;
         case 'I':
             arguments->dateformat = "%Y-%m-%dT%H:%M+00:00";

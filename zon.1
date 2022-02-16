@@ -20,7 +20,7 @@ Output is always in UTC, because that is convenient for scripting and unambigiou
 
 This program will give you the next rise and/or set time if your system-time is accurate enough. You can however specify any other reference date/time, by supplying a time to zon's  '-d' parameter in ISO format. This ISO format can easily be generated with the 'date -Im' command and may specify a time zone other than UTC. See examples.
 
-With the '-@' parameter output is usable for scheduling with the 'at' command, but make sure you set the TZ environemnt variable to utc before invoking the at command. For example: echo myjob.sh | TZ=utc at `zon -@' will run your job at the next sun rise (display the resulting schedule with the 'TZ=utc atq' command). You should not rely on the "utc" directive of the at command, because it is not always observed (at least, that is what the author has found).
+With the '-@' parameter output is usable for scheduling with the 'at' command by issuing the 'utc' timezone indicator. Be warned however, that this 'utc' is not always respected due to a bug in some of the previous versions of the 'at' command. A workaround is to set the TZ environment variable to 'utc' before invoking the at command. For example: echo myjob.sh | TZ=utc at `zon -@' will run your job at the next sun rise. Check the resulting schedule with the 'TZ=utc atq' command. 
 
 With the '-y' parameter the output is usable for ad hoc/transient scheduling with the 'systemd-run' command, because it will contain the "UTC" timezone indicator. Be reminded that systemd-run --on-calendar is a recent addition and may not work for you.
  
