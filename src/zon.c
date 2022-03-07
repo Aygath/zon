@@ -1,5 +1,6 @@
-/*  Print timestamp for sun rise and set
-   Copyright (C) 2022 Copyright Michael Welter
+/*
+zon wil print timestamp for sun rise and set
+Copyright (C) 2021,2022 Copyright Michael Welter
 
 This file is part "zon"
 
@@ -8,24 +9,15 @@ it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 
-GNU Wget is distributed in the hope that it will be useful,
+zont is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Wget.  If not, see <http://www.gnu.org/licenses/>.
+along with zon.  If not, see <http://www.gnu.org/licenses/>.
 
-Additional permission under GNU GPL version 3 section 7
-
-If you modify this program, or any covered work, by linking or
-combining it with the OpenSSL project's OpenSSL library (or a
-modified version of that library), containing parts covered by the
-terms of the OpenSSL or SSLeay licenses, the Free Software Foundation
-grants you additional permission to convey the resulting work.
-Corresponding Source for a non-source form of such a combination
-shall include the source code for the parts of OpenSSL used as well
-as that of the covered work.  */
+*/
 
 // This program will print the date/time of the next sunrise and/or sunset in a format that
 // is convenient for scripting and scheduling with e.g. the at command and the systemd command.
@@ -428,6 +420,11 @@ int main(int argc, char **argv)
             strftime(datestr,80,arguments.dateformat, &tmset);
             printf("%s%s\n",datestr,(arguments.verbose>=1)?" mid":"");
         }
+        if (arguments.verbose >=2 ) printf("zon  Copyright (C) 2021,2022  Michael Welter\n"
+            "  License GPLv3+: GNU GPL version 3 or later\n"
+            "  This program comes with ABSOLUTELY NO WARRANTY.\n"
+            "  This is free software, and you are welcome to redistribute it\n"
+            "  under certain conditions; see <http://www.gnu.org/licenses/gpl.html>.\n");
     }
     return 0;
 }

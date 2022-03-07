@@ -1,3 +1,12 @@
+zon v1.2.1~alfa
+
+  * Enhancements:
+
+    Print 'utc' timezone with -@/--at output (assuming no-bug at-command by default)
+ 
+    Even more code and license cleanup, that will accomodate Debian packaging aswell
+    
+
 zon v1.2
 
   * Enhancements:

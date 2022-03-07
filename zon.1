@@ -24,7 +24,7 @@ With the '-@' parameter output is usable for scheduling with the 'at' command by
 
 With the '-y' parameter the output is usable for ad hoc/transient scheduling with the 'systemd-run' command, because it will contain the "UTC" timezone indicator. Be reminded that systemd-run --on-calendar is a recent addition and may not work for you.
  
-The '-v' option will add a descriptive label. A repeat of this option will print some more or less usefull extra data as well.
+The '-v' option will add a descriptive label. A repeat of this option will print some more or less useful extra data as well.
 
 Please note: It would be straightforward to include the current local timezone in the output, however i.m.o. this makes no sense because the timezone is subject to future daylight saving time changes rendering the printed time unreliable for scheduling. The 'date' command can handle the changing timezones appropiately if required.
 .PP
@@ -168,4 +168,4 @@ Written by Michael Welter, 2021
 .SH "REPORTING BUGS"
 Report bugs to https://github.com/Aygath/zon.
 .SH COPYRIGHT
-GNU GENERAL PUBLIC LICENSE Version 2, 1991
+GNU GENERAL PUBLIC LICENSE Version 3, 1991

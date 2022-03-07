@@ -2,6 +2,23 @@
 # Once started this script will restart itself every sun rise and log its action in /tmp under its own name 
 # Adapt according to your needs!
 # When supplied with de "boot" parameter, it will skip the workload for now and immediately reschedule at sun rise.
+
+#   Copyright (C) 2022  Michael Welter
+
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
 cmdname=$(basename $0)
 timenow=$(date -Im)
 if [ "$1" = "boot" ] ; then 
