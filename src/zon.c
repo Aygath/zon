@@ -376,10 +376,10 @@ int main(int argc, char **argv)
                 printf("RS yesterday=%i, tomorrow=%i)\n",yesterdayrs,tomorrowrs);
             };
             if (rs==0) {
-                if ( (!validtrise) && (trise>=tbase)  &&
+                if ( (!validtrise) && (trise>tbase)  &&
                                  // do not take risetime after midnight sun period
                     !( yesterdayrs>0  ) ) validtrise=trise;
-                if ( (!validtset)  && (tset >=tbase)  &&
+                if ( (!validtset)  && (tset >tbase)  &&
                                  // do not take set time before midnight sun periodi
                     !( tomorrowrs>0  ) ) validtset=tset;
                                  /* very rare */
