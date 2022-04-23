@@ -188,10 +188,12 @@ int main(int argc, char **argv)
         // Try to read location from config files:
         strncpy(filename,getenv("HOME")?getenv("HOME"):"",80);
         strncat(filename,"/.config/zon.conf",80);
+	if ( arguments.verbose >= 2 ) printf("Try %s\n",filename);
         fp=fopen(filename,"r");
         if  (! fp) {
             strncpy(filename,sysconfdir,80);
             strncat(filename,"/zon.conf",80);
+	    if ( arguments.verbose >= 2 ) printf("Try %s\n",filename);
             fp=fopen(filename,"r");
         };
         if (fp) {
@@ -199,7 +201,7 @@ int main(int argc, char **argv)
                 locationstr[strlen(locationstr)-1]='\0';
                 // skipt "location=" part:
                 arguments.location=&locationstr[9];
-                if (arguments.verbose >=2 ) printf("Location str from file %s (should be +DDMM[SS]+DDDMM[SS]): %s  len %lu \n",filename,arguments.location,(unsigned long) strlen(arguments.location));
+                if (arguments.verbose >=2 ) printf("Location str from file %s (should be +DDMM[SS]+DDDMM[SS] or +lat,+lon): %s  len %lu \n",filename,arguments.location,(unsigned long) strlen(arguments.location));
                 fclose(fp);
             }
         }
@@ -209,6 +211,7 @@ int main(int argc, char **argv)
             char *TZ;
             TZ=getenv("TZ"); if ( TZ!=NULL && arguments.verbose >= 2 ) printf("TZ found as environment variable: %s\n",TZ);
             if ( TZ==NULL ) {
+                if ( arguments.verbose >= 2 ) printf("Try /etc/timezone\n");
                 fp=fopen("/etc/timezone","r");
                 if (fp) {
                     TZ=malloc(sizeof(char)*81);
