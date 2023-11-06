@@ -9,14 +9,15 @@ on:
 jobs:
   build:
 
-    runs-on: self-hosted
-    # runs-on: ubuntu-latest
+    # runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
     
     - name: install help2man devscripts debmake debhelper gcc-arm*
-      run: sudo apt-get --quiet -y install help2man devscripts debmake debhelper gcc-aarch64-linux-gnu gcc-arm*
+      run: sudo apt update; 
+           sudo apt-get --quiet -y install help2man devscripts debmake debhelper gcc-aarch64-linux-gnu gcc-arm* ;
     
     - name: configure
       run: ./configure
