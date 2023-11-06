@@ -497,14 +497,14 @@ void moonpos( double d, double *lon, double *lat, double *r )
 
 void moon_RA_dec( double d, double *RA, double *dec, double *r )
 /******************************************************/
-/* Computes the Sun's equatorial coordinates RA, Decl */
+/* Computes the Moon's equatorial coordinates RA, Decl */
 /* and also its distance, at an instant given in d,   */
 /* the number of days since 2000 Jan 0.0.             */
 /******************************************************/
 {
     double lon, lat, obl_ecl, x, y, z, y_eq;
 
-    /* Compute Sun's ecliptical coordinates */
+    /* Compute Moon's ecliptical coordinates */
     moonpos( d, &lon, &lat, r );
 
     /* Compute ecliptic rectangular coordinates (z=0) */
@@ -521,18 +521,7 @@ void moon_RA_dec( double d, double *RA, double *dec, double *r )
     /* Convert to GEOCENTRIC spherical coordinates */
     *RA = revolution( atan2d( y_eq, x ) );
     *dec = atan2d( z, sqrt(x*x + y_eq*y_eq) );
-
-    /* Now make it TOPOCENTRIC, because the moon is "close" to Earth */
-    double mpar, gclat, rho,HA, UT, g;
-
-    /* Moon's parallax, i.e. disk of Earth as seen from Moon */
-    mpar = asind(1.0 / *r);
-    gclat = lat - 0.1924 * sind(2.0*lat);
-    rho   = 0.99833 + 0.00167 * cosd(2.0*lat);
-    //      HA = (GMST0(d)+ UT + lon/15.0 ) - *RA;
-    g = atand(tand(gclat)/cosd(HA));
-    *RA = *RA - mpar * rho * cosd(gclat) * sind(HA)/cosd(*dec);
-    *dec = *dec - mpar * rho * sind(gclat) * sind(g - *dec)/sind(g);
+    // printf(" Moon RA=%f   Decl=%f\n",*RA, *dec ); 
 
 }                                /* sun_RA_dec */
 
@@ -604,7 +593,7 @@ double GMST0( double d )
 
 
 void EqAz( double RA, double DEC, struct tm tnow , double lon, double lat, double *azimuth, double *altitude)
-/* This converts the RA:decl angle to azimuth:altitude angle                        */
+/* This converts the equatorial RA:decl angle to horizontal azimuth:altitude angle                        */
 /* You must specify your reference frame for azi:alt by supplying you location plus */
 /* the time (d) at which you want to observe RA:DEC */
 {
