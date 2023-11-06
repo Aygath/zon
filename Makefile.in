@@ -110,14 +110,14 @@ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
-	$(am__configure_deps) $(dist_example_DATA) $(am__DIST_COMMON)
+	$(am__configure_deps) $(am__DIST_COMMON)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" \
-	"$(DESTDIR)$(exampledir)"
+	"$(DESTDIR)$(systemdsystemunitdir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__dirstamp = $(am__leading_dot)dirstamp
 am_zon_OBJECTS = src/zon.$(OBJEXT)
@@ -189,7 +189,7 @@ am__uninstall_files_from_dir = { \
 man1dir = $(mandir)/man1
 NROFF = nroff
 MANS = $(man_MANS)
-DATA = $(dist_example_DATA)
+DATA = $(systemdsystemunit_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -269,6 +269,9 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
@@ -312,6 +315,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
 sysconfdir = @sysconfdir@
+systemdsystemunitdir = @systemdsystemunitdir@
 target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
@@ -320,8 +324,19 @@ AM_CFLAGS = -DSYSCONFDIR=\"$(sysconfdir)\"
 zon_SOURCES = src/zon.c
 EXTRA_DIST = src/astro.c src/zon_options.c zon.1 
 exampledir = $(docdir)/examples
-dist_example_DATA = src/doc/examples/boot-zon-op.service src/doc/examples/zon-op
+# dist_example_DATA = src/doc/examples/zon-set.service src/doc/examples/zon-rise.service src/doc/examples/zon-rise.service src/doc/examples/zon-rise.timer src/doc/examples/zon-set.timer src/doc/examples/zon-nighttime.target src/doc/examples/zon-daytime.target
 man_MANS = zon.1
+AM_DISTCHECK_CONFIGURE_FLAGS = \
+    --with-systemdsystemunitdir='$$(prefix)/$(systemdsystemunitdir)'
+
+#  --with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)
+@HAVE_SYSTEMD_TRUE@systemdsystemunit_DATA = src/doc/examples/zon-rise.timer \
+@HAVE_SYSTEMD_TRUE@  src/doc/examples/zon-rise.service\
+@HAVE_SYSTEMD_TRUE@  src/doc/examples/zon-set.timer \
+@HAVE_SYSTEMD_TRUE@  src/doc/examples/zon-nighttime.target \
+@HAVE_SYSTEMD_TRUE@  src/doc/examples/zon-set.service \
+@HAVE_SYSTEMD_TRUE@  src/doc/examples/zon-daytime.target
+
 all: all-am
 
 .SUFFIXES:
@@ -486,27 +501,27 @@ uninstall-man1:
 	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^1][0-9a-z]*$$,1,;x' \
 	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
 	dir='$(DESTDIR)$(man1dir)'; $(am__uninstall_files_from_dir)
-install-dist_exampleDATA: $(dist_example_DATA)
+install-systemdsystemunitDATA: $(systemdsystemunit_DATA)
 	@$(NORMAL_INSTALL)
-	@list='$(dist_example_DATA)'; test -n "$(exampledir)" || list=; \
+	@list='$(systemdsystemunit_DATA)'; test -n "$(systemdsystemunitdir)" || list=; \
 	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(exampledir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(exampledir)" || exit 1; \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(systemdsystemunitdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(systemdsystemunitdir)" || exit 1; \
 	fi; \
 	for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  echo "$$d$$p"; \
 	done | $(am__base_list) | \
 	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(exampledir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(exampledir)" || exit $$?; \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(systemdsystemunitdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(systemdsystemunitdir)" || exit $$?; \
 	done
 
-uninstall-dist_exampleDATA:
+uninstall-systemdsystemunitDATA:
 	@$(NORMAL_UNINSTALL)
-	@list='$(dist_example_DATA)'; test -n "$(exampledir)" || list=; \
+	@list='$(systemdsystemunit_DATA)'; test -n "$(systemdsystemunitdir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(exampledir)'; $(am__uninstall_files_from_dir)
+	dir='$(DESTDIR)$(systemdsystemunitdir)'; $(am__uninstall_files_from_dir)
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -737,7 +752,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS) $(MANS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(exampledir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(systemdsystemunitdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -795,7 +810,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-dist_exampleDATA install-man
+install-data-am: install-man install-systemdsystemunitDATA
 
 install-dvi: install-dvi-am
 
@@ -842,8 +857,8 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-dist_exampleDATA \
-	uninstall-man
+uninstall-am: uninstall-binPROGRAMS uninstall-man \
+	uninstall-systemdsystemunitDATA
 
 uninstall-man: uninstall-man1
 
@@ -856,16 +871,16 @@ uninstall-man: uninstall-man1
 	distcheck distclean distclean-compile distclean-generic \
 	distclean-tags distcleancheck distdir distuninstallcheck dvi \
 	dvi-am html html-am info info-am install install-am \
-	install-binPROGRAMS install-data install-data-am \
-	install-dist_exampleDATA install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-man1 \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-dist_exampleDATA uninstall-man uninstall-man1
+	install-binPROGRAMS install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-man1 install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip install-systemdsystemunitDATA \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-man \
+	uninstall-man1 uninstall-systemdsystemunitDATA
 
 .PRECIOUS: Makefile
 
