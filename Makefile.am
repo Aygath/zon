@@ -22,7 +22,7 @@ zon_SOURCES = src/zon.c
 EXTRA_DIST = src/astro.c src/zon_options.c zon.1 
 
 exampledir = $(docdir)/examples
-# dist_example_DATA = src/doc/examples/zon-set.service src/doc/examples/zon-rise.service src/doc/examples/zon-rise.service src/doc/examples/zon-rise.timer src/doc/examples/zon-set.timer src/doc/examples/zon-nighttime.target src/doc/examples/zon-daytime.target
+dist_example_DATA = src/doc/examples/zon-set.service src/doc/examples/zon-rise.service src/doc/examples/zon-rise.timer src/doc/examples/zon-set.timer src/doc/examples/zon-nighttime.target src/doc/examples/zon-daytime.target
 
 man_MANS = zon.1
 zon.1: src/zon_options.c README configure.ac
