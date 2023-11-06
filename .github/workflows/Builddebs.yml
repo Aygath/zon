@@ -17,7 +17,7 @@ jobs:
     
     - name: install help2man devscripts debmake debhelper gcc-arm*
       run: sudo apt update; 
-           sudo apt-get --quiet -y install help2man devscripts debmake debhelper
+           sudo apt-get --quiet -y install help2man devscripts debmake debhelper gcc-aarch64-linux-gnu 
     
     - name: configure
       run: ./configure
