@@ -36,6 +36,7 @@ along with zon.  If not, see <http://www.gnu.org/licenses/>.
 #include <regex.h>
 #include "astro.c"
 #include <signal.h>
+#include <stdbool.h>
 
 const char *argp_program_version =
 PACKAGE_STRING ;
@@ -60,9 +61,10 @@ struct arguments
 {
     double angle;
     int rise, set, mid, current, verbose, rim;
-    char *date, *location, *dateformat;
+    char *date, *location, *dateformat, *outfile, *infile;
 };
 
+// e.g. 54.94857, -5.345 OR 54.94857N,5.345W OR +5455-00520
 char *locationRE="^((([NS+-]?)([0-9]+(\\.[0-9]+)?)([NS]?), ?([EW+-]?)([0-9]+(\\.[0-9]+)?)([EW]?))|(((\\+|-)[0-9]{4}([0-9]{2})?)((\\+|-)[0-9]{5}([0-9]{2})?)))$";
 /* Parse a single option. */
 static error_t
@@ -123,8 +125,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
         case 'y':
             arguments->dateformat = "%Y-%m-%d %H:%M UTC";
             break;
+        case 'Y':
+            arguments->dateformat = "[Timer]\nOnCalendar=%Y-%m-%d %H:%M UTC";
+            break;
         case 'f':
-            arguments->dateformat = arg;
+            arguments->infile = arg;
+            break;
+        case 'o':
+            arguments->outfile = arg;
             break;
         case 'v':
             arguments->verbose += 1;
@@ -166,9 +174,15 @@ int main(int argc, char **argv)
     arguments.date=NULL;
     arguments.location=NULL;
     arguments.dateformat="%Y-%m-%dT%H:%M+00:00";
+    arguments.outfile=NULL;
+    arguments.infile=NULL;
     argp_parse (&argp, argc, argv, 0, 0, &arguments);
 //# if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid ) ) printf(" default controle\n");
     if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid ) ) arguments.current=1;
+    if (arguments.date!=NULL && arguments.infile!=NULL) {
+	   fprintf(stderr,"the options to specify dates for printing are mutually exclusive\nTry 'zon --help' for more information.\n");
+           exit(SIGABRT);
+    };
 
     double lon=0,lat=0;
 
@@ -179,7 +193,7 @@ int main(int argc, char **argv)
     size_t lnmatchr=20;          // set to 20; too large, but regex might change in future releases.
     regmatch_t lmatchptr[lnmatchr];
 
-    FILE *fp;
+    FILE *fp, *ifp;
     char *locationstr; locationstr=malloc(sizeof(char)*81);
     char *filename; filename=malloc(sizeof(char)*81);
 
@@ -275,15 +289,10 @@ int main(int argc, char **argv)
     time_t tnow,tbase,trise,tset,validtrise,validtset;
     struct tm base,tmrise,tmset;
     char *datestr; datestr=malloc(sizeof(char)*81);
-    // take systemtime by default:
-    time(&tnow);
-    tbase=tnow;
-    FILE *datein;
 
     // modify base according tot cli-arguments
-    gmtime_r(&tbase,&base);
-    int zhours,zmin;
     // If the date parameter starts with "date ", then pass it to the date command, to provide a datestring
+    FILE *datein; //a filehandle to the output of date cmd
     if (( arguments.date!=NULL) && ( strstr(arguments.date,"date ") == arguments.date)) {
         strcpy(datestr,"date -Im -d '");
         strcat(datestr,&arguments.date[5]);
@@ -297,7 +306,30 @@ int main(int argc, char **argv)
         if ( arguments.verbose  >= 2 )
             printf("date output: %s\n",arguments.date );
     }
-    // parse the datestring:
+
+if (arguments.infile!=NULL) { 
+//	printf("infile niet NULL %s\n", arguments.infile ) ;
+   if (!strcmp(arguments.infile,"-")) ifp=stdin ; 
+   if (strcmp(arguments.infile,"-")) ifp=fopen(arguments.infile,"r");
+};
+while (true)
+ {
+    // take systemtime by default:
+    time(&tnow);
+    tbase=tnow;
+ if (arguments.infile!=NULL) { 
+            if (fgets(datestr,80,ifp) != NULL  ) { 
+//		    printf("datestr %s",datestr);
+		    arguments.date=datestr;
+		    arguments.date[strcspn(arguments.date, "\n")] = 0;
+	    } else { 
+		break;
+	    }
+ };
+    // parse the datestring if presented and change basetime (tbase) 
+    // Remember that arguments.date is filled by the commandline option "-d" and syntax checked there.
+    gmtime_r(&tbase,&base); // base is temporary storage for parsed datestring
+    int zhours,zmin; // temporary storage for parsed datestring
     if ( arguments.date!=NULL) {
         if (strlen(arguments.date)==22)
             sscanf(arguments.date, "%4d-%2d-%2dT%2d:%2d%3d:%2d", &base.tm_year, &base.tm_mon, &base.tm_mday, &base.tm_hour, &base.tm_min, &zhours, &zmin);
@@ -309,6 +341,7 @@ int main(int argc, char **argv)
         tbase = timegm(&base);
         gmtime_r(&tbase,&base);
     };
+
     // print the resulting date
     if ( arguments.verbose  >= 2 ) {
         printf( "system time using local time zone   %s", ctime(&tnow));
@@ -318,19 +351,26 @@ int main(int argc, char **argv)
 
     // find out and print current situation for the sun, if requested.
     double RAss,decss,rss,azss,altss,d;
-    if (arguments.current) {
+    double rm,longm,latm;
+    if (arguments.current && arguments.verbose>=2 ) {
         d = days_since_2000_Jan_0(base.tm_year+1900,base.tm_mon+1,base.tm_mday) + base.tm_hour/24.0 + base.tm_min/(24*60.0);
         sun_RA_dec(d,&RAss,&decss,&rss);
         EqAz(RAss,decss,base,lon,lat,&azss,&altss);
         /* Convert distance variable to the Sun's apparent radius in degrees */
         rss = 0.2666 / rss;
-        if (arguments.verbose >=2)
-            printf("sun azimuth=%f  altitude=%f\n",azss,altss);
-        if (arguments.verbose >=2) {
-            moon_RA_dec(d,&RAss,&decss,&rss);
-            EqAz(RAss,decss,base,lon,lat,&azss,&altss);
-            printf("moon azimuth=%f  altitude=%f\n",azss,altss);
-	}
+        printf("sun azimuth=%f  altitude=%f\n",azss,altss);
+	sunpos( d,&azss,&rss);
+        printf("sun pos lon=%f distance=%f \n",azss,rss);
+
+        //moon_RA_dec(d,&RAss,&decss,&rss);
+        // EqAz(RAss,decss,base,lon,lat,&azss,&altss);
+        //printf("moon azimuth=%f  altitude=%f\n",azss,altss);
+	moonpos( d,&longm,&latm,&rm);
+        printf("moon pos lon=%f  lat=%f distance=%f\n",longm,latm,rm);
+        printf("sun-moon pos %f  %f %f\n",azss,longm, rev180(longm+360-azss));
+	printf("moon phase360 %f\n",revolution(azss-longm));
+	printf("moon phase180 %f\n",rev180(azss-longm));
+
     }
 
     // Find out and print sun rise and set data, if requested.
@@ -398,36 +438,43 @@ int main(int argc, char **argv)
         tset=validtset;
         trise=validtrise;
 
+        fp=fopen(arguments.outfile,"w");
         // process and print the results of the rise/set calculation:
         if (arguments.rise) {
             gmtime_r(&trise,&tmrise) ;
             strftime(datestr,80,arguments.dateformat, &tmrise);
-            printf("%s%s\n",datestr,(arguments.verbose>=1)?" rise":"");
+            fprintf(fp?fp:stdout,"%s%s\n",datestr,(arguments.verbose>=1)?" rise":"");
         }
 
         if (arguments.set) {
             gmtime_r(&tset,&tmset);
             strftime(datestr,80,arguments.dateformat, &tmset);
-            printf("%s%s\n",datestr,(arguments.verbose>=1)?" set":"");
+            fprintf(fp?fp:stdout,"%s%s\n",datestr,(arguments.verbose>=1)?" set":"");
         }
         if (arguments.current) {
 	    if ( tset < trise )
-                printf("+%s\n",(arguments.verbose >=1)?" up now":"");
+                fprintf(fp?fp:stdout,"+%s\n",(arguments.verbose >=1)?" up now":"");
             else
-                printf("-%s\n",(arguments.verbose >=1)?" down now":"");
+                fprintf(fp?fp:stdout,"-%s\n",(arguments.verbose >=1)?" down now":"");
 	}
 
         if (arguments.mid) {
             tset = (trise+tset)/2;
             gmtime_r(&tset,&tmset);
             strftime(datestr,80,arguments.dateformat, &tmset);
-            printf("%s%s\n",datestr,(arguments.verbose>=1)?" mid":"");
+            fprintf(fp?fp:stdout,"%s%s\n",datestr,(arguments.verbose>=1)?" mid":"");
         }
+	if (fp) fclose(fp);
         if (arguments.verbose >=2 ) printf("zon  Copyright (C) 2021,2022  Michael Welter\n"
             "  License GPLv3+: GNU GPL version 3 or later\n"
             "  This program comes with ABSOLUTELY NO WARRANTY.\n"
             "  This is free software, and you are welcome to redistribute it\n"
             "  under certain conditions; see <http://www.gnu.org/licenses/gpl.html>.\n");
     }
+ if (arguments.infile==NULL) break ; 
+ } //while true loop over input dates.
+if (arguments.infile!=NULL) { 
+   if (ifp) fclose(ifp);
+};
     return 0;
 }
