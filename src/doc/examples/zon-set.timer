@@ -1,0 +1,10 @@
+# /etc/systemd/system/zon-set.timer
+[Unit]
+Description=Run at sun set
+
+[Timer]
+RandomizedDelaySec=20
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+# /lib/systemd/system/zon-set.service
+[Unit]
+Description=Change to nighttime target
+
+[Service]
+Type=oneshot
+ExecStart=bash -c 'if [[ $(zon) == "-" ]] ; then systemctl start zon-nighttime.target ; fi' 
+ExecStart=systemd-run -Gt --service-type=oneshot -E 'EDITOR=zon -sY -o ' -- \
+            bash -c 'systemctl edit --runtime zon-set.timer </dev/null ; systemctl start zon-set.timer'
+[Install]
+WantedBy=multi-user.target

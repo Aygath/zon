@@ -1,0 +1,11 @@
+# /lib/systemd/system/zon-rise.service
+[Unit]
+Description=Change to daytime target
+
+[Service]
+Type=oneshot
+ExecStart=bash -c 'if [[ $(zon) == "+" ]] ; then systemctl start zon-daytime.target ; fi' 
+ExecStart=systemd-run -Gt --service-type=oneshot -E 'EDITOR=zon -rY -o ' -- \
+            bash -c 'systemctl edit --runtime zon-rise.timer </dev/null ; systemctl start zon-rise.timer'
+[Install]
+WantedBy=multi-user.target

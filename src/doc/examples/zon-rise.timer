@@ -1,0 +1,10 @@
+# /etc/systemd/system/zon-rise.timer
+[Unit]
+Description=Run at sun rise
+
+[Timer]
+RandomizedDelaySec=20
+Persistent=true
+
+[Install]
+WantedBy=timers.target
