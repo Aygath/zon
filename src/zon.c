@@ -367,10 +367,45 @@ while (true)
         //printf("moon azimuth=%f  altitude=%f\n",azss,altss);
 	moonpos( d,&longm,&latm,&rm);
         printf("moon pos lon=%f  lat=%f distance=%f\n",longm,latm,rm);
-        printf("sun-moon pos %f  %f %f\n",azss,longm, rev180(longm+360-azss));
-	printf("moon phase360 %f\n",revolution(azss-longm));
-	printf("moon phase180 %f\n",rev180(azss-longm));
+        printf("moon-sun pos 360 %f  %f %f\n",longm,azss, revolution(longm+360-azss));
+	// 29.53058770576
+	printf("minuten bij basetime optellen %f\n", 24.0*60.0*25*((360- revolution(longm-azss) )/360) ); 
 
+		  // Repeat until the pointers low and high meet each other
+        int low=0,high=44000,mid;
+	double dd,longmstart,longmtoday,longmyesterday;
+		  moonpos(d,&longmstart,&latm,&rm);
+	          sunpos( d,&azss,&rss);
+		  longmstart=revolution(longmstart-azss);
+		  printf(" minutes to new moon start %i    angle %f\n", high, longmstart );
+	
+		while (low <= high) {
+		        mid = low + (high - low) / 2;
+		  // today mid
+		  dd = d + mid/24.0/60;
+		  moonpos(dd,&longmtoday,&latm,&rm);
+	          sunpos( dd,&azss,&rss);
+		  longmtoday=revolution(longmtoday-azss);
+		  // yesterday mid -1
+		  dd = d + (mid-1)/24.0/60;
+		  moonpos(dd,&longmyesterday,&latm,&rm);
+	          sunpos( dd,&azss,&rss);
+		  longmyesterday=revolution(longmyesterday-azss);
+		  printf(" minutes to new moon %i    angle %f  -  %f\n", mid, longmtoday,longmyesterday );
+		  // if today < 90 AND yesterday > 270 then we are ready 
+		  if (longmtoday<90 && longmyesterday>revolution(360+270)) 
+		        //return mid;
+		  { printf("Break \n");
+			break;  }
+		  
+		  // if today 
+		  if ( longmtoday>longmyesterday && longmtoday>longmstart )
+			  //(array[mid] > x)
+		        low = mid + 1;
+		  else
+		        high = mid - 1;
+		  longmstart=longmtoday;
+		}  
     }
 
     // Find out and print sun rise and set data, if requested.
