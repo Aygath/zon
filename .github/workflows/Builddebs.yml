@@ -5,6 +5,9 @@ on:
     branches: [  main  ]
   pull_request:
     branches: [  main  ]
+  workflow_dispatch:
+    branches: [  main  ]
+
 
 jobs:
   build:
@@ -17,7 +20,7 @@ jobs:
     
     - name: install help2man devscripts debmake debhelper gcc-arm*
       run: sudo apt update; 
-           sudo apt-get --quiet -y install help2man devscripts debmake debhelper gcc-aarch64-linux-gnu gcc-arm* ;
+           sudo apt-get --quiet -y install help2man devscripts debmake debhelper gcc-aarch64-linux-gnu 
     
     - name: configure
       run: ./configure
@@ -39,16 +42,6 @@ jobs:
            debmake -a ../${{ env.PNAME }}-${{ env.PVERSION}}.tar.gz;
            cd ${{ env.PNAME }}-${{ env.PVERSION}} ;
            debuild -i -uc -us ; 
-           
-    - name: armel debuild
-      run: sudo sh -c "echo /usr/arm-linux-gnueabihf/libsf > /etc/ld.so.conf.d/cross.conf" ;
-           cd debmake/${{ env.PNAME }}-${{ env.PVERSION}} ;
-           debuild -i -uc -us -aarmel;
-           
-    - name: armhf debuild
-      run: sudo sh -c "echo /usr/arm-linux-gnueabihf/lib >/etc/ld.so.conf.d/cross.conf" ;
-           cd debmake/${{ env.PNAME }}-${{ env.PVERSION}} ;      
-           debuild -i -uc -us -aarmhf;
            
     - name: arm64 debuild
       run: sudo sh -c "echo /usr/aarch64-linux-gnu/lib > /etc/ld.so.conf.d/cross.conf" ;
