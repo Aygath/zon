@@ -50,5 +50,6 @@ static struct argp_option options[] =
     {0,0,0,0, "" },
     {"angle"     ,5,  "degrees",      0,  "Specify your own rise/set angle of the centre of the sun to the horizon" },
     {"rim"       ,4,  0,      0,  "Specify to compensate angle for the upper rim of the sun (i.e. the radius of the apparent solar disk). Like at sun rise/set. Use after --angle" },
+    {"phase"     ,6,  0,      0,  "Produce data about phase of the moon" },
     { 0 }
 };

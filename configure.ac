@@ -15,9 +15,19 @@ dnl You should have received a copy of the GNU General Public License
 dnl along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 AC_INIT([zon], [1.2.2~alfa], [https://github.com/Aygath/zon])
+dnl Allow us to name files in subdirs, so that we do not need to have Makelfiles there: 
 AM_INIT_AUTOMAKE([subdir-objects])
+dnl Change default prefix for all files to "/" (resulting in /etc, /usr ...), (default for autotools is /usr/local): 
+AC_PREFIX_DEFAULT (/)
+dnl Test if we have a C compiler:
 AC_PROG_CC
-AC_CHECK_LIB([m],[cos])
+
+dnl Haiku does not use libm for the math functions, they are part
+dnl of the C library
+AC_SEARCH_LIBS([cos], [m], [], [
+  AC_MSG_ERROR([unable to find the cos() function])
+])
+dnl Besides a C compiler, we also need the "help2man" program, in order to generate man-page:
 AC_PATH_PROG(HELP2MAN, help2man, false // No help2man //)
 AC_CONFIG_FILES([Makefile])
 

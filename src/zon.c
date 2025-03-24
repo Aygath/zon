@@ -60,7 +60,7 @@ static char args_doc[] = "-r gives sun rise in iso-timeformat, -s gives sun set,
 struct arguments
 {
     double angle;
-    int rise, set, mid, current, verbose, rim;
+    int rise, set, mid, current, verbose, rim, moon, phase;
     char *date, *location, *dateformat, *outfile, *infile;
 };
 
@@ -103,6 +103,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
         case 5:
             sscanf(arg,"%lf",&arguments->angle);
             arguments->rim =0;
+            break;
+        case 6:
+            arguments->phase =1;
+            arguments->current =1;
             break;
         case 'c':
             arguments->current = 1;
@@ -171,14 +175,14 @@ int main(int argc, char **argv)
     arguments.verbose=0;
     arguments.angle=-35.0/60.0;
     arguments.rim=1;
+    arguments.phase=0;
     arguments.date=NULL;
     arguments.location=NULL;
     arguments.dateformat="%Y-%m-%dT%H:%M+00:00";
     arguments.outfile=NULL;
     arguments.infile=NULL;
     argp_parse (&argp, argc, argv, 0, 0, &arguments);
-//# if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid ) ) printf(" default controle\n");
-    if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid ) ) arguments.current=1;
+    if ( ! (arguments.current || arguments.rise || arguments.set || arguments.mid || arguments.phase) ) arguments.current=1;
     if (arguments.date!=NULL && arguments.infile!=NULL) {
 	   fprintf(stderr,"the options to specify dates for printing are mutually exclusive\nTry 'zon --help' for more information.\n");
            exit(SIGABRT);
@@ -367,18 +371,29 @@ while (true)
         //printf("moon azimuth=%f  altitude=%f\n",azss,altss);
 	moonpos( d,&longm,&latm,&rm);
         printf("moon pos lon=%f  lat=%f distance=%f\n",longm,latm,rm);
-        printf("moon-sun pos 360 %f  %f %f\n",longm,azss, revolution(longm+360-azss));
+        printf("moon-sun pos 360 (phase after new moon) %f  %f %f\n",longm,azss, revolution(longm-azss));
 	// 29.53058770576
-	printf("minuten bij basetime optellen %f\n", 24.0*60.0*25*((360- revolution(longm-azss) )/360) ); 
 
-		  // Repeat until the pointers low and high meet each other
-        int low=0,high=44000,mid;
+    }
+    if (arguments.phase) {
+	// Repeat until the pointers low and high meet each other
+        int low=0,high=43200,mid;
 	double dd,longmstart,longmtoday,longmyesterday;
-		  moonpos(d,&longmstart,&latm,&rm);
-	          sunpos( d,&azss,&rss);
-		  longmstart=revolution(longmstart-azss);
-		  printf(" minutes to new moon start %i    angle %f\n", high, longmstart );
+        d = days_since_2000_Jan_0(base.tm_year+1900,base.tm_mon+1,base.tm_mday) + base.tm_hour/24.0 + base.tm_min/(24*60.0);
+
+        fp=fopen(arguments.outfile,"w");
+	moonpos(d,&longmstart,&latm,&rm);
+	sunpos( d,&azss,&rss);
+	longmstart=revolution(longmstart-azss);
+        if (arguments.current) {
+	    if ( longmstart < 180 )
+                fprintf(fp?fp:stdout,"+%s\n",(arguments.verbose >=1)?" increasing now":"");
+            else
+                fprintf(fp?fp:stdout,"-%s\n",(arguments.verbose >=1)?" decreasing now":"");
+	}
+	if (arguments.verbose>=2) printf(" minutes to new moon start %i    angle %f\n", high, longmstart );
 	
+        if (arguments.rise) {
 		while (low <= high) {
 		        mid = low + (high - low) / 2;
 		  // today mid
@@ -391,12 +406,11 @@ while (true)
 		  moonpos(dd,&longmyesterday,&latm,&rm);
 	          sunpos( dd,&azss,&rss);
 		  longmyesterday=revolution(longmyesterday-azss);
-		  printf(" minutes to new moon %i    angle %f  -  %f\n", mid, longmtoday,longmyesterday );
+		  if (arguments.verbose>=2) printf(" minutes to new moon %5i    angle %10f  -  %10f  range %5i\n", mid, longmtoday,longmyesterday,high-low );
 		  // if today < 90 AND yesterday > 270 then we are ready 
-		  if (longmtoday<90 && longmyesterday>revolution(360+270)) 
+		  if (longmtoday<90 && longmyesterday>270) 
 		        //return mid;
-		  { printf("Break \n");
-			break;  }
+			break;  
 		  
 		  // if today 
 		  if ( longmtoday>longmyesterday && longmtoday>longmstart )
@@ -405,8 +419,15 @@ while (true)
 		  else
 		        high = mid - 1;
 		  longmstart=longmtoday;
-		}  
-    }
+		}
+	    trise=tbase + mid*60;
+            gmtime_r(&trise,&tmrise) ;
+            strftime(datestr,80,arguments.dateformat, &tmrise);
+            fprintf(fp?fp:stdout,"%s%s\n",datestr,(arguments.verbose>=1)?" rise new moon":"");
+	    if (arguments.verbose>=2) printf(" minutes to new moon %i    angle %f  -  %f\n", mid, longmtoday,longmyesterday );
+        }
+	if (fp) fclose(fp);
+    }	
 
     // Find out and print sun rise and set data, if requested.
     double hset,hrise;
