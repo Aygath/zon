@@ -33,8 +33,8 @@ jobs:
       
     - name: make distcheck
       run: make distcheck;
-           echo "PNAME=""$( grep 'define PACKAGE_NAME ' config.log | cut -d\" -f 2 | tr -d '\n')" >> $GITHUB_ENV ; 
-           echo "PVERSION=""$( grep 'define PACKAGE_VERSION ' config.log | cut -d\" -f 2 | tr -d '\n')" >> $GITHUB_ENV ; 
+           echo "PNAME=""$( egrep '^#define PACKAGE_NAME ' config.log | cut -d\" -f 2 | tr -d '\n')" >> $GITHUB_ENV ; 
+           echo "PVERSION=""$( egrep '^#define PACKAGE_VERSION ' config.log | cut -d\" -f 2 | tr -d '\n')" >> $GITHUB_ENV ; 
 
     - name: Run debmake & debuild for amd64, armel and armhf
       run: mkdir debmake ;
