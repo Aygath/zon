@@ -11,7 +11,7 @@ You have to supply your location on earth by latitude and longitude by giving th
 
 Output is always in UTC, because that is convenient for scripting and unambigious for scheduling. Default output has an ISO time stamp format, eg 2021-02-28T01:00+00:00. For display purposes the regular date command can convert this to whatever desired timezone and formatting, e.g. by 'date -d <isotimestamp>'. See examples.
 
-This program will give you the next rise and/or set time if your system-time is accurate enough. You can however specify any other reference date/time, by supplying a time to zon's  '-d' parameter in ISO format. This ISO format can easily be generated with the 'date -Im' command and may specify a time zone other than UTC. See examples.
+This program will give you the next rise and/or set time if your system-time is accurate enough. You can however specify any other reference date/time, by supplying a time to zon's  '-d' parameter in ISO format. This ISO format can easily be generated with the 'date -Im' command and may specify a time zone other than UTC. See examples. You could supply multiple input dates from any file, or pipe from stdin with "-f -" (just like the date command).  
 
 With the '-@' parameter output is usable for scheduling with the 'at' command by issuing the 'utc' timezone indicator. Be warned however, that this 'utc' is not always respected due to a bug in some of the previous versions of the 'at' command. A workaround is to set the TZ environment variable to 'utc' before invoking the at command. For example: echo myjob.sh | TZ=utc at `zon -@' will run your job at the next sun rise. Check the resulting schedule with the 'TZ=utc atq' command. 
 
