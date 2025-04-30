@@ -7,6 +7,8 @@ jobs:
       - run: cat /etc/os-release
       - run: pwd
       - run: ls -l /
-      - run: ls -l /workspace/aygath/zon/*
+      - run: ls -l /workspace/
       - run: which find
+      - run: ls -l /workspace/aygath/
+      - run: ls -l /workspace/aygath/zon/
       - run: find /workspace/aygath/zon/
