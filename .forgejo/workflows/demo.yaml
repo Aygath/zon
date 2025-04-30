@@ -6,5 +6,6 @@ jobs:
       - run: echo All Good
       - run: cat /etc/os-release
       - run: pwd
+      - run: ls -l /
       - run: ls -l /workspace/aygath/zon
       - run: find /workspace/aygath/zon
