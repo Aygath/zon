@@ -7,3 +7,6 @@ jobs:
       - run: cat /etc/os-release
       - run: which automake
       - run: which autoconf
+      - run: pwd
+      - run: ls -al 
+      - run: find .
