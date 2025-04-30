@@ -3,6 +3,7 @@ jobs:
   test:
     runs-on: codeberg-tiny
     steps:
+      - uses: actions/checkout@v1
       - run: echo All Good
       - run: cat /etc/os-release
       - run: pwd
@@ -12,3 +13,5 @@ jobs:
       - run: ls -l /workspace/aygath/
       - run: ls -l /workspace/aygath/zon/
       - run: find /workspace/aygath/zon/
+      - run: ./configure
+      - run: make
