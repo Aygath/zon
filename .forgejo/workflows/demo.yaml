@@ -8,5 +8,5 @@ jobs:
       - run: which automake
       - run: which autoconf
       - run: pwd
-      - run: ./config ; make
+      - run: ./configure ; make
       - run: find .
