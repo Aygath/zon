@@ -6,5 +6,5 @@ jobs:
       - run: echo All Good
       - run: cat /etc/os-release
       - run: pwd
-      - run: ls ${PWD}
-      - run: find ${PWD} 
+      - run: ls -l
+      - run: find .
