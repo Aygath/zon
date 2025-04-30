@@ -1,0 +1,9 @@
+on: [push]
+jobs:
+  test:
+    runs-on: codeberg-tiny
+    steps:
+      - run: echo All Good
+      - run: cat /etc/os-release
+      - run: which automake
+      - run: which autoconf
