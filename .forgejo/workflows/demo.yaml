@@ -1,7 +1,7 @@
 on: [workflow_dispatch]
 jobs:
   test:
-    runs-on: docker
+    runs-on: codeberg-tiny
     steps:
       - uses: actions/checkout@v3
       - run: ./configure
